@@ -142,30 +142,36 @@ started**, **in progress**, **blocked**, **done**.
 Build and verify this deterministically before any MCP or LLM wiring —
 that's the whole point of doing it as its own phase.
 
-- [ ] **Implement the board as a state machine with a configurable grid
+- [x] **Implement the board as a state machine with a configurable grid
   size**
   - Priority: High
-  - Status: not started
+  - Status: done — `src/engine/board.py`; `Board(grid_size, max_barriers)`
+    takes grid size as a constructor arg, never hardcoded.
   - Definition of done: grid size is read from `config.board.grid_size`;
     nothing in the engine assumes 5×5; the same code path handles a 1×2
     board and a 5×5 board identically.
 
-- [ ] **8-directional movement with boundary validation**
+- [x] **8-directional movement with boundary validation**
   - Priority: High
-  - Status: not started
+  - Status: done — `Board.move()` + `DIRECTIONS` dict in
+    `src/engine/board.py`; covered by `tests/engine/test_board.py`.
   - Definition of done: all 8 directions (N, S, E, W, NE, NW, SE, SW) are
     supported; moves off the board are rejected with a clear reason, not a
     crash.
 
-- [ ] **Turn order (Thief moves first, then Cop, repeating)**
+- [x] **Turn order (Thief moves first, then Cop, repeating)**
   - Priority: High
-  - Status: not started
+  - Status: done — `run_subgame()` in `src/engine/subgame.py` alternates
+    thief/cop strictly per move number.
   - Definition of done: the engine enforces strict alternation and exposes
     whose turn it is at any point in a sub-game.
 
-- [ ] **Barrier placement (Cop only, capped at `max_barriers`)**
+- [x] **Barrier placement (Cop only, capped at `max_barriers`)**
   - Priority: High
-  - Status: not started
+  - Status: done — `Board.place_barrier()`; no-legal-moves fallback
+    (skip turn) implemented in `run_subgame()` for the Thief; Cop retains
+    the option to barricade even with no legal moves. Covered by the
+    1×2 sanity tests.
   - Definition of done: only the Cop can place a barrier; barriers block
     both agents from entering that cell for the rest of the sub-game; the
     Cop cannot exceed `max_barriers` placements in one sub-game; placing a
@@ -173,40 +179,49 @@ that's the whole point of doing it as its own phase.
     legal moves (decide and implement a no-legal-moves fallback, e.g. skip
     turn).
 
-- [ ] **Win conditions: capture and survival**
+- [x] **Win conditions: capture and survival**
   - Priority: High
-  - Status: not started
+  - Status: done — `Board.is_captured()` checked after every move in
+    `run_subgame()`; survival declared at `max_moves` with no capture.
   - Definition of done: capture is detected the instant the Cop's position
     exactly matches the Thief's; survival is declared once the Thief
     completes `max_moves` without ever being captured.
 
-- [ ] **Sub-game loop (≤25 moves) and full-game loop (6 sub-games)**
+- [x] **Sub-game loop (≤25 moves) and full-game loop (6 sub-games)**
   - Priority: High
-  - Status: not started
+  - Status: done — `src/engine/subgame.py` (sub-game) and
+    `src/engine/game.py` (`run_game_series`, accumulates cop/thief totals
+    per the scoring table across `num_games` sub-games).
   - Definition of done: a sub-game terminates correctly on capture,
     survival, or the move cap; a full series runs exactly `num_games`
     sub-games back to back and accumulates per-sub-game scores into a
     series total matching the scoring table.
 
-- [ ] **Persist every raw sub-game result to `results/*.json`**
+- [x] **Persist every raw sub-game result to `results/*.json`**
   - Priority: Medium
-  - Status: not started
+  - Status: done — `src/engine/results.py` (`save_subgame_result`),
+    called from `run_game_series` after each sub-game.
   - Definition of done: each result file is tagged by scenario (grid size,
     sub-game index, winner) and is written automatically, never
     hand-edited afterward.
 
-- [ ] **Sanity check on a 1×2 grid**
+- [x] **Sanity check on a 1×2 grid**
   - Priority: High
-  - Status: not started
+  - Status: done — `tests/engine/test_sanity_1x2.py` covers capture,
+    survival, self-barricade-with-no-legal-moves, and full 6-sub-game
+    scoring on a 1×2 board.
   - Definition of done: win conditions, barrier logic, and scoring all
     behave correctly on the smallest possible board, run before scaling up
     to anything larger — this is meant to catch off-by-one and edge-case
     bugs cheaply.
 
-- [ ] **Unit tests: movement validation, barrier blocking, capture
+- [x] **Unit tests: movement validation, barrier blocking, capture
   detection, survival detection, score accumulation**
   - Priority: High
-  - Status: not started
+  - Status: done — `tests/engine/` (`test_board.py`, `test_subgame.py`,
+    `test_game.py`, `test_results.py`, `test_start_positions.py`,
+    `test_sanity_1x2.py`) plus `tests/config/test_loader.py`. 21 tests
+    passing, 98% coverage on `src/engine` + `src/config` (target ≥85%).
   - Definition of done: each of these five behaviors has a dedicated,
     passing test, and the suite catches a deliberately-introduced
     regression in any one of them.
