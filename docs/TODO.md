@@ -333,44 +333,61 @@ that's the whole point of doing it as its own phase.
 
 ## Phase 3 — Strategy / Decision-Making Mechanism
 
-- [ ] **Implement a heuristic strategy (Manhattan distance / decision
+- [x] **Implement a heuristic strategy (Manhattan distance / decision
   tree) in `src/strategy/`**
   - Priority: High
-  - Status: not started
-  - Definition of done: both Cop and Thief have a working heuristic that
-    produces sensible moves (Cop closes distance, Thief opens it) and the
-    pipeline runs without needing Q-learning yet.
+  - Status: done — `src/strategy/heuristic.py`. Cop minimizes, Thief
+    maximizes, Manhattan distance to the believed opponent position;
+    exposed both as a `Policy` callable (local engine) and as a
+    candidate-list callable (MCP orchestrator), now the orchestrator's
+    default, replacing the Phase 2 random `policy_stub`.
+  - Definition of done: confirmed — `tests/strategy/test_heuristic.py`
+    asserts the Cop's pick always strictly decreases distance and the
+    Thief's always strictly increases it (where a legal move allows).
 
-- [ ] **Implement Tabular Q-Learning, if pursued**
+- [x] **Implement Tabular Q-Learning, if pursued**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: State/Action/Reward are defined concretely, the
-    Bellman update and epsilon-greedy exploration are implemented, episode
-    bookkeeping works across sub-games, and the learned Q-table is
-    persisted to `results/`.
+  - Status: done — `src/strategy/q_learning.py` (`QLearningAgent`) +
+    `scripts/train_q_learning.py` (offline training loop against the
+    local engine, not MCP). State = `(own_pos, opponent_pos)`; action =
+    8 directions + `PLACE_BARRIER` (Cop only); reward = per-step
+    Δ-Manhattan-distance + ±50 terminal capture bonus; Bellman update and
+    epsilon-greedy with decay implemented; Q-tables persisted to
+    `results/q_tables/{cop,thief}_qtable.json` after training.
+  - Definition of done: confirmed — trained 4000 episodes on the
+    configured 5×5 grid; see the calibration record in
+    `docs/prd/strategy.md` and the raw curve in
+    `results/q_tables/learning_curve.json`.
 
-- [ ] **Calibrate hyperparameters (α, γ, ε) and record the reasoning**
+- [x] **Calibrate hyperparameters (α, γ, ε) and record the reasoning**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: the chosen values and *why* they were chosen are
-    written into `docs/prd/strategy.md`, not just left as the config
-    defaults with no justification.
+  - Status: done — recorded in `docs/prd/strategy.md` under
+    "Implementation notes (Phase 3, done)": config defaults
+    (α=0.1, γ=0.9, ε₀=0.2, decay=0.995) converged cleanly (Cop win-rate
+    0.74 → 1.0 by ~episode 1300, no oscillation), so no retuning was
+    needed; reasoning for keeping each default is written out there.
+  - Definition of done: confirmed.
 
-- [ ] **Confirm the Cop's and Thief's strategies are unique and original
+- [x] **Confirm the Cop's and Thief's strategies are unique and original
   implementations**
   - Priority: Low
-  - Status: not started
-  - Definition of done: if any code is shared with a partner group (bonus
-    scenario), the mini-PRD explicitly notes how this project's agent
-    implementation and strategy differ from anything shared.
+  - Status: done — uniqueness note added to `docs/prd/strategy.md`; no
+    code is shared with any partner group since the inter-group bonus
+    (Phase 7) is still deferred.
+  - Definition of done: confirmed for the current (no-bonus) scope; will
+    be revisited if Phase 7 is picked back up.
 
-- [ ] **Unit tests for the Q-table update rule and the action-selection
+- [x] **Unit tests for the Q-table update rule and the action-selection
   policy**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: a known transition produces the exact expected
-    Q-value update; epsilon-greedy action selection statistically respects
-    the configured epsilon across many trials.
+  - Status: done — `tests/strategy/test_q_learning.py`: hand-computed
+    Bellman update assertions (including the zero-future-value terminal
+    case), epsilon-greedy statistical test (8000 trials, observed rate
+    within 0.025 of the analytically expected rate), save/load round-trip.
+    Plus `tests/strategy/test_policy.py` for the heuristic/q_learning
+    selector in `src/strategy/policy.py`. 52 tests total project-wide,
+    95% coverage on `src/` (target ≥85%).
+  - Definition of done: confirmed.
 
 ---
 
@@ -703,3 +720,17 @@ here in case that changes.
   - No technical failures, hangs, or hyperparameter issues at any grid
     size — there's no learning component yet (Phase 3), so "hyperparameter
     problems" don't apply at this stage.
+- 2026-06-23: Phase 3 implemented — `src/strategy/{heuristic,q_learning,
+  policy}.py`, `scripts/train_q_learning.py`, and
+  `tests/strategy/{test_heuristic,test_q_learning,test_policy}.py` (15 new
+  tests, all passing; project-wide 52 tests, 95% coverage, target ≥85%).
+  `src/agents/orchestrator.py`'s default `policy_fn` switched from the
+  Phase 2 random `policy_stub` to the new heuristic. Trained Q-tables for
+  4000 episodes on the configured 5×5 grid — Cop win-rate rose from 0.74
+  (episode 50) to 1.0 (by ~episode 1300, held through 4000) as epsilon
+  decayed to its floor; full calibration record and reasoning in
+  `docs/prd/strategy.md`. Cop dominance at this stage is consistent with
+  the Phase 2 random-policy sanity progression (also Cop-favored on 5×5)
+  and is expected to shift once Phase 4's partial observability and NL
+  bluffing give the Thief tools the Cop can't see through — flagged there
+  for re-measurement, not treated as a balance bug to fix now.

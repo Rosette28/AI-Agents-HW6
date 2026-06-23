@@ -1,13 +1,13 @@
-"""Placeholder decision/message logic for the Phase 2 pipeline sanity check.
+"""Placeholder decision/message logic from the Phase 2 pipeline sanity check.
 
-This stands in for two things that arrive in later phases:
-  - the LLM tool-call decision (Phase 3 adds real strategy: heuristics /
-    Q-learning; Phase 4 lets the LLM itself choose the tool call)
-  - free natural-language message generation (Phase 4 replaces the fixed
-    template below with LLM-authored text)
+`candidate_actions` is no longer the orchestrator's default (Phase 3
+replaced it with `src/strategy/heuristic.py`'s heuristic_candidate_actions
+as the default `policy_fn`) but stays here as a uniformly-random baseline —
+useful for A/B comparison against the heuristic/Q-learning policies, e.g.
+in the Phase 3 sanity-progression notes.
 
-Keeping this isolated in one small module makes both swaps a one-file
-change in `src/agents/orchestrator.py` later, instead of a rewrite.
+`compose_message` is still the live placeholder for the NL message; Phase 4
+replaces it with LLM-authored text.
 """
 
 import random
