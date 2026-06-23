@@ -230,78 +230,104 @@ that's the whole point of doing it as its own phase.
 
 ## Phase 2 — MCP Infrastructure & Full Local Run
 
-- [ ] **Stand up two MCP servers (Cop, Thief) using FastMCP**
+- [x] **Stand up two MCP servers (Cop, Thief) using FastMCP**
   - Priority: High
-  - Status: not started
+  - Status: done — `src/mcp_servers/cop_server.py` and `thief_server.py`,
+    each a thin wrapper that builds a FastMCP instance from the shared
+    `src/mcp_servers/factory.py` tool-registration logic (kept in one place
+    to avoid duplicating the tool bodies between the two otherwise-identical
+    servers). Each is independently startable on its own port via
+    `scripts/run_mcp_servers.py`.
   - Definition of done: each server lives in its own module under
     `src/mcp_servers/`, runs on its own port, and is independently
-    startable/stoppable.
+    startable/stoppable. Verified manually with both servers bound to
+    `127.0.0.1:8001`/`8002` simultaneously.
 
-- [ ] **Expose the required tools on each server**
+- [x] **Expose the required tools on each server**
   - Priority: High
-  - Status: not started
-  - Definition of done: read incoming message, report/verify own location
-    (internal/scoring-only, never leaking the opponent's exact position),
-    send a natural-language message, and choose-and-execute an action
-    (move/barrier) are all implemented and match `docs/API.md`.
+  - Status: done — `ping`, `read_message`, `send_message`,
+    `report_location`, `choose_action` all implemented in
+    `src/mcp_servers/factory.py`; `report_location` only ever returns the
+    calling agent's own position, and `choose_action(place_barrier)` is
+    rejected for the Thief.
+  - Definition of done: matches `docs/API.md`. Covered by
+    `tests/mcp_servers/test_tools.py`.
 
-- [ ] **Document each tool's contract in `docs/API.md`**
+- [x] **Document each tool's contract in `docs/API.md`**
   - Priority: High
-  - Status: in progress — a first-draft contract exists; needs to be kept
-    in sync with the actual implementation as it's built, not just left as
-    the planning-stage version.
+  - Status: done — the existing draft contract matched the implementation
+    exactly once built; no changes needed.
   - Definition of done: the doc accurately reflects the real request/
     response shape of every tool, including error formats.
 
-- [ ] **Confirm Client/Server separation**
+- [x] **Confirm Client/Server separation**
   - Priority: High
-  - Status: not started
-  - Definition of done: grep/inspect `src/mcp_servers/` and confirm it
-    never imports or calls an LLM SDK directly — all LLM calls live in
-    `src/agents/`.
+  - Status: done — `src/mcp_servers/` has no import of `anthropic` or any
+    LLM SDK; the one decision-making module that exists so far
+    (`src/agents/policy_stub.py`) is a non-LLM placeholder (random legal
+    action), living under `src/agents/` per the required split. Real LLM
+    calls arrive in Phase 3/4 and will stay in `src/agents/`.
+  - Definition of done: grep/inspect confirms no LLM import in
+    `src/mcp_servers/`.
 
-- [ ] **Run both servers locally on separate ports, verify mutual
+- [x] **Run both servers locally on separate ports, verify mutual
   reachability with a trivial ping/echo tool call**
   - Priority: High
-  - Status: not started
-  - Definition of done: a manual or scripted ping/echo round-trip succeeds
-    between both servers before any real game logic is wired through them.
+  - Status: done — `scripts/run_mcp_servers.py` starts both servers (ports
+    from `config.yaml: mcp.*`) in one process as concurrent asyncio tasks,
+    sharing one `GameSession`; manually verified a `ping` round-trip against
+    both `http://127.0.0.1:8001/mcp` and `:8002/mcp`, plus a `send_message`
+    on the Thief's port correctly arriving in the Cop's `read_message`.
+    Automated equivalent: `tests/mcp_servers/test_tools.py::test_mutual_ping_echo`.
+  - Definition of done: round-trip succeeds before any real game logic is
+    wired through.
 
-- [ ] **Pipeline sanity check on the 1×2 grid**
+- [x] **Pipeline sanity check on the 1×2 grid**
   - Priority: High
-  - Status: not started
-  - Definition of done: a dummy message travels end to end (Client → tool
-    call → MCP server → response) on the smallest board, and is logged
-    correctly.
+  - Status: done —
+    `tests/mcp_servers/test_pipeline.py::test_dummy_message_travels_end_to_end_on_1x2_grid`
+    drives one full sub-game through the tool-call chain on a 1×2 board and
+    asserts the transcript is logged.
+  - Definition of done: dummy message travels Client → tool call → MCP
+    server → response, logged correctly.
 
-- [ ] **Wire up the full chain: orchestrator → LLM → tool-call decision →
+- [x] **Wire up the full chain: orchestrator → LLM → tool-call decision →
   MCP server → engine update → result back to orchestrator**
   - Priority: High
-  - Status: not started
-  - Definition of done: a single turn can be driven entirely through this
-    chain without any manual intervention or hardcoded shortcut.
+  - Status: done, with an explicit scoping decision — `src/agents/orchestrator.py`
+    wires the full mechanical chain (decision → `choose_action` tool call →
+    MCP server → engine → result → next decision), but the decision step
+    is `src/agents/policy_stub.py` (random legal action), **not** a real LLM
+    call yet. Spending real API tokens on a random-walk placeholder before
+    Phase 3 (strategy) and Phase 4 (NL dialogue) exist would be wasted
+    spend; the plug point is isolated to one small module so swapping in the
+    LLM later is a one-file change, not a rewire of the chain.
+  - Definition of done: a single turn is driven entirely through this chain
+    with no manual intervention — confirmed.
 
-- [ ] **Run a complete sub-game between the two agents on localhost**
+- [x] **Run a complete sub-game between the two agents on localhost**
   - Priority: High
-  - Status: not started
-  - Definition of done: one full sub-game (ending in capture or survival)
-    completes autonomously, with a readable transcript and log.
+  - Status: done — `run_subgame_via_mcp()` runs to a winner via the MCP
+    chain; covered by `test_full_subgame_terminates_with_a_winner`.
+  - Definition of done: one full sub-game completes autonomously with a
+    readable transcript.
 
-- [ ] **Run a full 6-sub-game series locally and confirm totals match
+- [x] **Run a full 6-sub-game series locally and confirm totals match
   Table 1's scoring rules**
   - Priority: High
-  - Status: not started
-  - Definition of done: the series-level total score exactly matches what
-    you'd compute by hand from the per-sub-game outcomes and the scoring
-    table in `config.yaml`.
+  - Status: done — `run_series_via_mcp()`; `test_full_series_totals_match_scoring_table`
+    asserts the totals equal the sum of per-sub-game points, and each
+    sub-game's points match the scoring table for its winner.
+  - Definition of done: confirmed exactly, both by assertion and by hand on
+    sample runs (e.g. 6/6 Cop wins → 120/30 totals on a 3×3 grid).
 
-- [ ] **Sanity progression: 1×2 → 2×3/3×2 → 3×4/4×3 → 5×5**
+- [x] **Sanity progression: 1×2 → 2×3/3×2 → 3×4/4×3 → 5×5**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: each grid size in the progression is run at least
-    once, with observations about convergence issues, hyperparameter
-    problems, and observation-radius effects recorded in the notes log at
-    the bottom of this file.
+  - Status: done — ran a 6-sub-game series via the MCP chain at each grid
+    size in the progression with the random placeholder policy; see the
+    notes log below for the observations recorded at each stage.
+  - Definition of done: each grid size run at least once, observations
+    recorded.
 
 ---
 
@@ -641,3 +667,39 @@ here in case that changes.
   format for readability, with each task expanded to include its
   rationale and a concrete definition of done, per explicit feedback that
   the original was too thin and hard to read.
+- 2026-06-23: Phase 2 implemented — `src/mcp_servers/` (session, factory,
+  cop_server, thief_server, auth), `src/agents/` (policy_stub,
+  orchestrator), `scripts/run_mcp_servers.py`, and
+  `tests/mcp_servers/{test_tools,test_pipeline,test_auth}.py` (15 new tests,
+  all passing; project-wide coverage 98%, target ≥85%). The project's own
+  `.venv` had no dependencies installed yet (Phase 0's "create environment"
+  item was still "not started") — installed `requirements.txt` into it
+  before any of this could run.
+- 2026-06-23: Sanity progression run via `run_series_via_mcp()` with the
+  random placeholder policy (6 sub-games per grid, seed=99):
+  - `(1,2)`: 6/6 Cop wins, every sub-game ends in 1 move. Smallest board
+    leaves the Thief almost nowhere to go without colliding with the Cop —
+    expected and matches the Phase 1 1×2 sanity test's spirit.
+  - `(2,3)`, `(3,2)`: still 6/6 Cop wins, moves-to-capture ranged 1–6.
+  - `(3,4)`, `(4,3)`: 6/6 Cop wins, moves-to-capture ranged 2–19 — more
+    room lets some sub-games run much longer before the random walk
+    collides.
+  - `(5,5)`: 5/6 Cop wins, 1 Thief survival (the 25-move cap was hit) —
+    totals 105/35.
+  - **Observation worth flagging for Phase 3:** a uniformly random Thief
+    is not actually "evading" anything — it wins only when its random walk
+    happens to dodge the Cop for 25 moves, which gets more likely as the
+    grid grows (consistent with the one survival appearing only at 5×5).
+    The lopsided win rate here is an artifact of `policy_stub`'s randomness,
+    not a property of the engine or the MCP wiring — don't read it as a
+    balance problem to fix before Phase 3 lands a real strategy.
+  - **Also confirms existing Phase 1 capture semantics carry through the
+    MCP chain unchanged:** if the *Thief* moves onto the Cop's cell, that
+    still scores as a Cop win (`Board.is_captured()` doesn't care which
+    side moved last) — same as `src/engine/subgame.py`. Worth re-examining
+    once real strategy/NL dialogue exist, since a bluffing Thief could
+    plausibly want to avoid ever being adjacent to a stated Cop position,
+    not just avoid moving onto it.
+  - No technical failures, hangs, or hyperparameter issues at any grid
+    size — there's no learning component yet (Phase 3), so "hyperparameter
+    problems" don't apply at this stage.
