@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.Python
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets / credentials
+.env
+*.env
+client_secret*.json
+token.json
+credentials.json
+
+# Logs and run artifacts
+logs/
+*.log
+
+# Results (raw run data, never hand-edited but also not source)
+results/*.json
+results/*.csv
+!results/.gitkeep
+
+# Figures generated at run time (keep committed ones explicitly)
+figures/*.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/

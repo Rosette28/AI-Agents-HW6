@@ -1,0 +1,43 @@
+# Single source of truth for all tunable parameters.
+# Nothing in src/ should hardcode any of these values — read this file at startup.
+
+board:
+  grid_size: [5, 5]      # [rows, cols]; sanity-check progression uses [1,2],[2,3],[3,4] before this
+
+game:
+  max_moves: 25          # per sub-game, before the Thief is declared the winner by survival
+  num_games: 6           # sub-games per full series
+  max_barriers: 5        # Cop-only, per sub-game
+
+scoring:
+  cop_win: 20            # Cop's score when it captures the Thief
+  thief_win: 10          # Thief's score when it survives max_moves
+  cop_loss: 5            # Cop's score when the Thief evades
+  thief_loss: 5          # Thief's score when captured
+
+observation:
+  visibility_radius: 2   # cells; partial-observation radius for each agent's belief update
+
+llm:
+  approach: "cloud_api"  # one of: cloud_api | secured_ollama | hybrid
+  provider: "anthropic"  # anthropic | openai | gemini
+  model: ""              # filled in once chosen; never hardcode elsewhere
+
+strategy:
+  algorithm: "heuristic"  # heuristic | q_learning
+  q_learning:
+    alpha: 0.1            # learning rate
+    gamma: 0.9             # discount factor
+    epsilon: 0.2           # exploration rate (epsilon-greedy)
+    epsilon_decay: 0.995
+
+mcp:
+  cop_server_port: 8001
+  thief_server_port: 8002
+  cop_mcp_url: ""          # filled in once deployed to the cloud
+  thief_mcp_url: ""
+
+reporting:
+  recipient_email: "rmisegal+uoh26b@gmail.com"
+
+timezone: "Asia/Jerusalem"

@@ -1,0 +1,13 @@
+# Pin exact versions once the environment is created with uv:
+#   uv venv && uv pip install -r requirements.txt
+fastmcp
+anthropic
+python-dotenv
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+pandas
+matplotlib
+pyyaml
+pytest
+pytest-cov
