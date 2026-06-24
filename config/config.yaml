@@ -34,8 +34,8 @@ strategy:
 mcp:
   cop_server_port: 8001
   thief_server_port: 8002
-  cop_mcp_url: ""          # filled in once deployed to the cloud
-  thief_mcp_url: ""
+  cop_mcp_url: "https://cop-mcp-server.onrender.com/mcp"
+  thief_mcp_url: "https://thief-mcp-server-u04c.onrender.com/mcp"
 
 group:
   group_name: ""           # fill in before sending the Internal Game JSON report

@@ -40,7 +40,16 @@ class AgentSession:
         self.inbox: list[dict] = []
 
     def start(self, position: Position) -> None:
+        """(Re)initialize this session for a new sub-game: position,
+        barriers, inbox, and move counter all reset. Safe to call more
+        than once on the same server — a long-lived deployed server plays
+        many sub-games in one series, each needing a clean slate (exposed
+        as the `start_subgame` tool, see factory.py)."""
         self.position = position
+        self.barriers = set()
+        self.barriers_placed = 0
+        self.move_number = 0
+        self.inbox = []
 
     def in_bounds(self, pos: Position) -> bool:
         r, c = pos

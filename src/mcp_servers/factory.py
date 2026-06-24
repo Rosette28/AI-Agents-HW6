@@ -30,6 +30,18 @@ def build_server(name: str, agent: Agent, session: AgentSession, verifier: Stati
         return {"ok": True, "agent": agent}
 
     @server.tool
+    def start_subgame(position: list[int]) -> dict:
+        """(Re)initialize this server's session for a new sub-game:
+        position, barriers, inbox, and move counter all reset. The
+        orchestrator calls this once per sub-game, before any other tool —
+        required so one long-lived deployed server can correctly serve
+        multiple sub-games in a series, not just the one it happened to
+        start with at boot.
+        """
+        session.start(tuple(position))
+        return {"ok": True}
+
+    @server.tool
     def read_message() -> dict | None:
         """Return the most recent NL message addressed to this agent, if any."""
         return session.latest_message()

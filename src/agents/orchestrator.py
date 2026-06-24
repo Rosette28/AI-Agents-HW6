@@ -24,6 +24,11 @@ themselves.
 Passing `llm_client=None` (the default) keeps the exact Phase 2/3 behavior
 for callers that don't need it (e.g. existing sanity-progression
 scripts/tests).
+
+`cop_endpoint`/`thief_endpoint` (default `None`) let this same orchestrator
+drive either local in-process servers or an already-deployed remote
+server — see `_build_agent_client`. A real graded cloud run needs the
+remote form; everything else in this module is identical either way.
 """
 
 import random
@@ -124,10 +129,30 @@ async def _relay_turn(client: Client, agent: str, turn: dict) -> None:
         await client.call_tool("receive_message", {"from_agent": agent, "text": text})
 
 
+def _build_agent_client(role: str, grid_size: tuple, max_moves: int, max_barriers: int,
+                         visibility_radius: int, endpoint: dict | None) -> Client:
+    """`endpoint=None` (default) builds a local, in-process server for this
+    sub-game — what every test and the local/dev demo use. Pass
+    `endpoint={"url": ..., "token": ...}` to instead connect to an
+    already-deployed remote server (e.g. a real cloud-deployed Cop/Thief
+    service) — required for a real graded cloud run, since the
+    orchestrator itself still runs locally but the servers it drives don't
+    have to. Either way, the caller must call `start_subgame` right after
+    connecting to (re)initialize that server's session for this sub-game.
+    """
+    if endpoint:
+        return Client(endpoint["url"], auth=endpoint.get("token"))
+    session = AgentSession(role, grid_size, max_moves, max_barriers, visibility_radius)
+    server = (build_cop_server if role == "cop" else build_thief_server)(session)
+    return Client(server)
+
+
 async def run_subgame_via_mcp(grid_size: tuple, max_moves: int, max_barriers: int,
                                cop_pos: tuple, thief_pos: tuple, rng: random.Random,
                                policy_fn=heuristic_candidate_actions, llm_client=None,
-                               visibility_radius: int = 2, on_turn=None) -> dict:
+                               visibility_radius: int = 2, on_turn=None,
+                               cop_endpoint: dict | None = None,
+                               thief_endpoint: dict | None = None) -> dict:
     """Run one full sub-game end to end through the MCP tool-call chain.
 
     `policy_fn(agent, board, barriers_remaining, rng) -> list[action]`
@@ -137,24 +162,25 @@ async def run_subgame_via_mcp(grid_size: tuple, max_moves: int, max_barriers: in
     enables the Phase 4 belief-update + LLM-authored NL message pipeline;
     `None` keeps the Phase 2/3 fixed-template behavior. `on_turn(snapshot)`,
     if given, is called after every turn with a plain-dict state snapshot
-    (used by the GUI state writer).
+    (used by the GUI state writer). `cop_endpoint`/`thief_endpoint` default
+    to `None` (local in-process servers); pass `{"url": ..., "token": ...}`
+    for either to play against an already-deployed remote server instead.
     """
     true_board = Board(grid_size, max_barriers)
     true_board.set_start_positions(cop_pos, thief_pos)
 
-    cop_session = AgentSession("cop", grid_size, max_moves, max_barriers, visibility_radius)
-    cop_session.start(cop_pos)
-    thief_session = AgentSession("thief", grid_size, max_moves, 0, visibility_radius)
-    thief_session.start(thief_pos)
-
-    cop_server = build_cop_server(cop_session)
-    thief_server = build_thief_server(thief_session)
+    cop_client_cm = _build_agent_client("cop", grid_size, max_moves, max_barriers,
+                                         visibility_radius, cop_endpoint)
+    thief_client_cm = _build_agent_client("thief", grid_size, max_moves, 0,
+                                           visibility_radius, thief_endpoint)
 
     beliefs: dict[str, Belief] = {}
     last_messages: dict[str, str] = {}
     transcript = []
     moves_taken = max_moves
-    async with Client(cop_server) as cop_client, Client(thief_server) as thief_client:
+    async with cop_client_cm as cop_client, thief_client_cm as thief_client:
+        await cop_client.call_tool("start_subgame", {"position": list(cop_pos)})
+        await thief_client.call_tool("start_subgame", {"position": list(thief_pos)})
         for round_number in range(1, max_moves + 1):
             thief_turn = await _act(thief_client, true_board, "thief", 0, rng, policy_fn,
                                      llm_client, beliefs, grid_size, max_barriers, max_moves,
@@ -204,6 +230,7 @@ def _score_subgame(winner: str, scoring: dict) -> tuple[int, int]:
 async def _run_subgame_with_technical_loss_retry(
     grid_size, max_moves, max_barriers, cop_pos, thief_pos, rng, policy_fn, llm_client,
     visibility_radius, on_turn, max_retries: int, technical_losses: list, subgame_index: int,
+    cop_endpoint: dict | None = None, thief_endpoint: dict | None = None,
 ) -> dict:
     """Per docs/prd/email-reporting.md's Technical Loss handling: any
     exception out of `run_subgame_via_mcp` (MCP server unreachable,
@@ -215,7 +242,8 @@ async def _run_subgame_with_technical_loss_retry(
     for attempt in range(1, max_retries + 2):
         try:
             return await run_subgame_via_mcp(grid_size, max_moves, max_barriers, cop_pos, thief_pos,
-                                              rng, policy_fn, llm_client, visibility_radius, on_turn)
+                                              rng, policy_fn, llm_client, visibility_radius, on_turn,
+                                              cop_endpoint, thief_endpoint)
         except Exception as exc:
             technical_losses.append({"sub_game_index": subgame_index, "attempt": attempt, "reason": str(exc)})
             if attempt > max_retries:
@@ -228,13 +256,18 @@ async def run_series_via_mcp(grid_size: tuple, max_moves: int, num_games: int, m
                               scoring: dict, start_positions_fn, seed: int | None = None,
                               policy_fn=heuristic_candidate_actions, llm_client=None,
                               visibility_radius: int = 2, on_turn=None,
-                              max_technical_retries: int = 2) -> dict:
+                              max_technical_retries: int = 2,
+                              cop_endpoint: dict | None = None,
+                              thief_endpoint: dict | None = None) -> dict:
     """Run a full series of `num_games` sub-games through the MCP chain and
     accumulate totals, mirroring src/engine/game.run_game_series. A
     technical failure mid-sub-game is voided and retried in place (see
     `_run_subgame_with_technical_loss_retry`) rather than corrupting or
     truncating the series; `technical_losses` in the return value logs any
-    such retries for grading evidence.
+    such retries for grading evidence. `cop_endpoint`/`thief_endpoint`
+    (see `run_subgame_via_mcp`) default to `None` (local in-process
+    servers); pass `{"url": ..., "token": ...}` for either to run the
+    whole series against an already-deployed remote server instead.
     """
     rng = random.Random(seed)
     cop_total = thief_total = 0
@@ -245,6 +278,7 @@ async def run_series_via_mcp(grid_size: tuple, max_moves: int, num_games: int, m
         result = await _run_subgame_with_technical_loss_retry(
             grid_size, max_moves, max_barriers, cop_pos, thief_pos, rng, policy_fn, llm_client,
             visibility_radius, on_turn, max_technical_retries, technical_losses, index,
+            cop_endpoint, thief_endpoint,
         )
         cop_points, thief_points = _score_subgame(result["winner"], scoring)
         result["cop_points"], result["thief_points"] = cop_points, thief_points
