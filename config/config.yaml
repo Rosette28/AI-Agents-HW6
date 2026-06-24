@@ -37,7 +37,13 @@ mcp:
   cop_mcp_url: ""          # filled in once deployed to the cloud
   thief_mcp_url: ""
 
+group:
+  group_name: ""           # fill in before sending the Internal Game JSON report
+  students: []             # list of student names/IDs
+  github_repo: ""          # public repo URL for this submission
+
 reporting:
   recipient_email: "rmisegal+uoh26b@gmail.com"
+  send_on_completion: false   # safety gate — flip to true only for the real graded/final run
 
 timezone: "Asia/Jerusalem"

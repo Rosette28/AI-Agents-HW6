@@ -487,20 +487,30 @@ This is the heart of the assignment — treat it accordingly.
 
 - [ ] **Deploy both MCP servers to the cloud**
   - Priority: High
-  - Status: not started
+  - Status: not started — requires you to pick/sign up for a hosting
+    platform and run the deploy yourself; not something doable from this
+    session. `scripts/run_mcp_servers.py` already starts both servers as
+    independent asyncio tasks on configurable ports — point your chosen
+    host at that entrypoint.
   - Definition of done: Cop and Thief servers each have a stable, public
     HTTPS URL, reachable from outside your own network.
 
-- [ ] **Implement token-based authentication with revocation support on
+- [x] **Implement token-based authentication with revocation support on
   each server**
   - Priority: High
-  - Status: not started
-  - Definition of done: a revoked token is provably rejected on the next
-    request (test this explicitly, don't just assume it).
+  - Status: done — `src/mcp_servers/auth.py:RevocableTokenVerifier` checks
+    an on-disk revocation list (`REVOKED_TOKENS_PATH`) fresh on every
+    `verify_token` call; `revoke_token()` appends to that list. No server
+    restart needed for a revocation to take effect.
+  - Definition of done: confirmed —
+    `tests/mcp_servers/test_auth.py::test_revoked_token_is_rejected_on_next_request_without_restart`
+    revokes a token mid-session (server stays running) and asserts the very
+    next request with that token fails.
 
 - [ ] **Confirm public HTTPS reachability, not blocked by any firewall**
   - Priority: High
-  - Status: not started
+  - Status: not started — blocked on the deployment above; this is a
+    manual check against whatever URL that deployment produces.
   - Definition of done: a request from outside your home/work network
     succeeds; avoid testing from a restrictive organizational network,
     since that can produce false negatives.
@@ -516,43 +526,74 @@ This is the heart of the assignment — treat it accordingly.
 
 - [ ] **Record the final two URLs (Cop, Thief) in `docs/ARCHITECTURE.md`**
   - Priority: High
-  - Status: not started
+  - Status: not started — blocked on the deployment above;
+    `docs/ARCHITECTURE.md` and `config.yaml: mcp.{cop,thief}_mcp_url` both
+    have the placeholder slots ready to fill in once URLs exist.
   - Definition of done: both URLs present and current in that file, kept
     in sync if either server is ever redeployed.
 
 - [ ] **Set up a Google Cloud project + OAuth Client Secret + token**
   - Priority: High
-  - Status: not started
+  - Status: not started — interactive Google Console / consent-screen
+    steps only you can click through; `.env.example`'s
+    `GMAIL_CLIENT_SECRET_PATH`/`GMAIL_TOKEN_PATH` are the slots the
+    reporting code already reads from once you have them.
   - Definition of done: credentials obtained per the recorded walkthrough;
     paths stored in `.env`, the secret itself never committed to git.
 
-- [ ] **Implement the reporting module so the Cop agent automatically
+- [x] **Implement the reporting module so the Cop agent automatically
   sends a single summary email after all 6 sub-games**
   - Priority: High
-  - Status: not started
-  - Definition of done: the email is sent automatically, with no manual
-    trigger, to `rmisegal+uoh26b@gmail.com`.
+  - Status: done — `src/reporting/{schema,game_report,gmail_sender}.py`;
+    `scripts/run_llm_demo.py` calls `build_internal_game_json` ->
+    `validate_internal_game_json` -> `send_report` automatically right
+    after `run_series_via_mcp` returns (no separate manual trigger script),
+    skipping with a clear message if Gmail OAuth env vars aren't set yet.
+  - Definition of done: confirmed in code — sending itself can't be
+    end-to-end verified without real OAuth credentials (the GCP setup
+    item above), which is the one piece left for you to do by hand.
 
-- [ ] **Email body = the Internal Game JSON only — no free text**
+- [x] **Email body = the Internal Game JSON only — no free text**
   - Priority: High
-  - Status: not started
-  - Definition of done: the body is exactly the JSON payload, nothing else,
-    validated against the schema in `hw06_requirements.md` §11.1.
+  - Status: done — `gmail_sender.send_report` builds the email via
+    `email.mime.text.MIMEText(json.dumps(payload, indent=2))` with no other
+    content; schema enforced by `src/reporting/schema.py` before send.
+  - Definition of done: confirmed —
+    `tests/reporting/test_gmail_sender.py::test_send_report_body_is_exactly_the_json_payload`
+    decodes the actual raw MIME message sent to the (mocked) Gmail API and
+    asserts the body round-trips through `json.loads` to the exact payload.
 
-- [ ] **Handle Technical Loss: detect, void, and auto-re-run failed
+- [x] **Handle Technical Loss: detect, void, and auto-re-run failed
   sub-games until 6 valid ones are recorded**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: a simulated technical failure (e.g. a server made
-    briefly unreachable) results in exactly one re-run of that sub-game,
-    not a duplicated or corrupted series.
+  - Status: done — `src/agents/orchestrator.py
+    :_run_subgame_with_technical_loss_retry`; any exception out of
+    `run_subgame_via_mcp` (MCP unreachable, malformed response, etc. — a
+    normal game outcome never raises) voids that attempt and retries the
+    same sub-game in place, up to `max_technical_retries` (default 2);
+    `run_series_via_mcp`'s return value now also carries
+    `technical_losses` (a log of every voided attempt, for grading
+    evidence) and still always ends with exactly `num_games` sub-games.
+  - Definition of done: confirmed —
+    `tests/agents/test_orchestrator.py::test_technical_loss_is_voided_and_retried_without_corrupting_the_series`
+    injects exactly one simulated failure and asserts the series ends with
+    the right sub-game count and exactly one logged retry, not a
+    duplicate/gap; a second test confirms it gives up with a clear error
+    after exhausting retries rather than hanging forever.
 
-- [ ] **Write a test that mocks the Gmail call and asserts the JSON
+- [x] **Write a test that mocks the Gmail call and asserts the JSON
   payload schema is correct**
   - Priority: Medium
-  - Status: not started
-  - Definition of done: the test fails if a required key is missing or
-    mistyped, proving the schema check is actually meaningful.
+  - Status: done — `tests/reporting/test_schema.py` (5 tests: well-formed
+    payload passes; missing key, wrong type, missing totals side, and
+    non-int totals value are each individually rejected with a clear
+    error) plus `tests/reporting/test_game_report.py` (assembled payload
+    passes the same schema check) and `tests/reporting/test_gmail_sender.py`
+    (mocks `googleapiclient.discovery.build` and the OAuth credential
+    loading, never touches the real network).
+  - Definition of done: confirmed — each schema test fails if its specific
+    corruption isn't caught, proving the check is meaningful rather than a
+    rubber stamp.
 
 ---
 
@@ -872,3 +913,131 @@ here in case that changes.
   edge cells repeatedly when there is no real positional information —
   worth discussing in the orchestration-challenges write-up (Phase 6) as a
   concrete example of how belief uncertainty shapes physical behavior.
+- 2026-06-24: Phase 5 (partial) — token revocation support implemented.
+  `src/mcp_servers/auth.py`'s `StaticTokenVerifier` (FastMCP's built-in,
+  construction-time-only) replaced with a new `RevocableTokenVerifier`
+  (subclasses FastMCP's `TokenVerifier` base) that re-reads an on-disk
+  revocation list (`REVOKED_TOKENS_PATH`, default
+  `data/revoked_tokens.json`) fresh on every `verify_token` call — so
+  `revoke_token(token)` takes effect on the very next request, no server
+  restart required (the previous comment in that file said revocation
+  meant restarting, which the new requirements doc reading flagged as not
+  good enough: "a revoked token is provably rejected on the next request").
+  New test `tests/mcp_servers/test_auth.py::
+  test_revoked_token_is_rejected_on_next_request_without_restart` keeps one
+  real HTTP server running throughout, makes a successful call, revokes the
+  token, then asserts the next call with that same token fails — proving
+  the "no restart" property rather than just asserting the revocation list
+  is checked. `docs/API.md` and `.env.example` updated to document
+  `REVOKED_TOKENS_PATH`. 79 tests total project-wide, all passing.
+  **Remaining Phase 5 items deferred for now, per explicit user scope
+  decision:** cloud deployment of both MCP servers, public-HTTPS
+  reachability confirmation, recording the deployed URLs in
+  `docs/ARCHITECTURE.md`, Google Cloud OAuth setup, the Gmail reporting
+  module + Internal-Game-JSON schema validation/test, and Technical-Loss
+  detection/auto-re-run. Not started.
+- 2026-06-24: Phase 5 finished, except the two items that require you to
+  click through external interfaces by hand (flagged below — everything
+  codeable is done):
+  - **Reporting module** — new `src/reporting/` package: `schema.py`
+    validates the Internal Game JSON (hw06_requirements.md S11.1: required
+    keys, types, and a `totals.{cop,thief}` int check) before anything is
+    sent; `game_report.py` assembles that exact payload from a
+    `run_series_via_mcp`/`run_game_series` result plus a new
+    `config.yaml: group.{group_name,students,github_repo}` section (added
+    with empty placeholders — fill these in before a real send);
+    `gmail_sender.py` sends it via the Gmail API (`googleapiclient` +
+    `google-auth-oauthlib`, all already in `requirements.txt` from Phase
+    0), body = `MIMEText(json.dumps(payload, indent=2))` only, no prose.
+    OAuth token loading (`_load_credentials`) caches/refreshes a token at
+    `GMAIL_TOKEN_PATH` and only falls back to the interactive
+    `InstalledAppFlow.run_local_server` consent flow when no cached token
+    exists — so once you've done that once, every later send is silent.
+  - **Wired into the one trigger point** — `scripts/run_llm_demo.py` now
+    calls `build_internal_game_json` -> `validate_internal_game_json` ->
+    `send_report` automatically right after the series completes (matching
+    "the Cop agent automatically triggers... after all 6 sub-games", since
+    this script *is* the Cop-and-Thief series runner); it skips reporting
+    with a clear printed message if `GMAIL_CLIENT_SECRET_PATH`/
+    `GMAIL_TOKEN_PATH` aren't set yet, so the script still works as a pure
+    local/cloud demo before OAuth setup is done.
+  - **Technical Loss handling** — `src/agents/orchestrator.py` gained
+    `_run_subgame_with_technical_loss_retry`: any exception out of
+    `run_subgame_via_mcp` (the normal "no legal action" case already
+    returns a structured result rather than raising, so any raised
+    exception here really does mean an infrastructure fault) voids that
+    attempt and retries the *same* sub-game in place, up to
+    `max_technical_retries` (default 2, new kwarg on `run_series_via_mcp`).
+    The series return value gained a `technical_losses` list logging every
+    voided attempt (sub-game index, attempt number, failure reason) as
+    grading evidence, and still always ends with exactly `num_games` valid
+    sub-games — never a duplicate or a gap.
+  - **Tests** — 14 new tests: `tests/reporting/{test_schema,
+    test_game_report,test_gmail_sender}.py` (12 — schema edge cases,
+    payload assembly, and Gmail send with the API call + OAuth credential
+    loading both mocked, asserting the exact decoded MIME body round-trips
+    to the payload via `json.loads`) and two in
+    `tests/agents/test_orchestrator.py` (one injects exactly one simulated
+    technical failure and asserts the series still ends with the right
+    sub-game count and exactly one logged retry; the other confirms it
+    gives up with a clear `RuntimeError` instead of hanging forever once
+    retries are exhausted). 93 tests total project-wide, 89% coverage
+    (target ≥85%), `src/reporting/` itself at 100%.
+  - **Explicitly NOT done — needs you, not code:** (1) deploying both MCP
+    servers to a cloud host and confirming public HTTPS reachability —
+    pick a platform, point it at `scripts/run_mcp_servers.py`, then fill
+    the resulting URLs into `config.yaml: mcp.{cop,thief}_mcp_url` and
+    `docs/ARCHITECTURE.md`; (2) the Google Cloud project + OAuth consent
+    screen + client secret download (the recorded walkthrough) — once you
+    have `GMAIL_CLIENT_SECRET_PATH` pointing at that file, the *first* real
+    `run_llm_demo.py` run will open a one-time browser consent prompt via
+    `InstalledAppFlow`, then cache a token and never prompt again. Also
+    fill in `config.yaml: group.*` with your real group name/students/repo
+    URL before that first real send, since it's currently empty
+    placeholders.
+- 2026-06-24: **Architecture fix, found while planning the deployment
+  instructions above:** the two MCP servers shared one in-memory
+  `GameSession` object (`src/mcp_servers/session.py`), which only worked
+  because both ran in the same process. That silently broke the "two
+  independent servers" requirement the moment they'd be deployed
+  separately, and made the user's stated Phase 7 bonus goal (their Cop
+  talking to a totally independently-deployed partner group's Thief)
+  impossible outright. Per the user's explicit choice (real separation now
+  rather than deferring to Phase 7), redesigned before doing any cloud
+  deployment — see `docs/PLAN.md` ADR-5 for the full rationale.
+  - `GameSession` -> `AgentSession` (`src/mcp_servers/session.py`): each
+    server now owns only its own position, its own barrier set, and its
+    own inbox. Nothing shared with the opponent's server.
+  - `src/mcp_servers/factory.py`: `choose_action` no longer reports
+    `captured` (a server can't know the opponent's position); two new
+    tools — `receive_message` (orchestrator-relayed delivery, replacing
+    `send_message` writing directly into the opponent's inbox) and
+    `sync_barriers` (orchestrator pushes the Cop's barriers to the
+    Thief's server, since barriers block both agents but only the Cop's
+    own server learns about a new one directly); `observe_opponent` now
+    takes an `opponent_position` parameter supplied by the caller instead
+    of reading a shared board.
+  - `src/agents/orchestrator.py`: now keeps its own `Board` mirror
+    (`src/engine/board.py`, reused as-is) as the sole ground truth —
+    applies each server-validated action to it directly, computes capture
+    from it, and feeds it to the unchanged Phase 3/4 belief/strategy code
+    exactly as before (`make_belief_board`/`heuristic_candidate_actions`
+    take a `Board`, so none of that code needed to change). Also now
+    explicitly relays messages (`_relay_turn`) and barrier syncs between
+    the two independent server sessions.
+  - `scripts/run_mcp_servers.py`: now supports two modes — local dev
+    (both servers in one process, unchanged from before, just for a quick
+    ping/echo check) and a new `MCP_SERVER_ROLE=cop|thief` cloud mode that
+    starts only one server bound to `0.0.0.0:$PORT`, so the same script
+    deploys as two genuinely separate services.
+  - `docs/API.md` and `docs/PLAN.md` (Container diagram, sequence diagram,
+    new ADR-5) updated to match.
+  - Tests: `tests/mcp_servers/test_tools.py` rewritten for two independent
+    sessions plus new coverage for `receive_message`/`sync_barriers`/the
+    parameterized `observe_opponent`; `test_auth.py` updated to build an
+    `AgentSession`. `tests/mcp_servers/test_pipeline.py` and
+    `tests/agents/test_orchestrator.py` needed **no changes** — the public
+    `run_subgame_via_mcp`/`run_series_via_mcp` signatures and return
+    shapes were preserved exactly, which is exactly the point of keeping
+    this an internal refactor. 97 tests total project-wide, all passing,
+    89% coverage (target ≥85%).

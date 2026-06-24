@@ -27,9 +27,9 @@ Rel(gmail, grader, "Result email")
 ```mermaid
 C4Container
 title Cop & Thief — Containers
-Container(engine, "Game Engine", "Python", "Board state machine, rules, scoring")
-Container(cop_mcp_c, "Cop MCP Server", "FastMCP", "Tools: read_message, report_location, send_message, choose_action")
-Container(thief_mcp_c, "Thief MCP Server", "FastMCP", "Same tool contract, Thief-scoped")
+Container(engine, "Game Engine", "Python", "Orchestrator-side ground-truth Board mirror, rules, scoring")
+Container(cop_mcp_c, "Cop MCP Server", "FastMCP", "Own independent session; tools: read_message, receive_message, send_message, report_location, observe_opponent, sync_barriers, choose_action")
+Container(thief_mcp_c, "Thief MCP Server", "FastMCP", "Same tool contract, own independent session, Thief-scoped")
 Container(cop_agent, "Cop Orchestrator", "Python + LLM SDK", "Belief update, strategy, tool-call loop")
 Container(thief_agent, "Thief Orchestrator", "Python + LLM SDK", "Belief update, strategy, tool-call loop")
 Container(strategy, "Strategy Module", "Python", "Heuristic / Tabular Q-Learning")
@@ -57,17 +57,17 @@ participant CM as Cop MCP Server
 participant C as Cop Orchestrator
 
 T->>TM: choose_action(tool call, via LLM decision)
-TM->>E: apply_move(thief, direction)
-E-->>TM: new state (thief-local view)
-T->>TM: send_message(NL text)
-TM->>CM: relay NL message
-CM-->>C: read_message
-C->>C: LLM updates belief from NL + visibility radius
+TM-->>T: result (validated against Thief's own session only)
+T->>T: apply same action to its local ground-truth Board mirror (E)
+T->>TM: send_message(NL text) [bookkeeping only]
+T->>CM: receive_message(from_agent="thief", text) [orchestrator relays — servers never call each other]
+C->>CM: read_message
+C->>C: LLM updates belief from NL + observe_opponent(opponent_position supplied by T)
 C->>CM: choose_action(tool call)
-CM->>E: apply_move_or_barrier(cop, action)
-E-->>CM: new state, capture check
-CM->>C: result (captured? barrier placed?)
-Note over T,C: repeat until capture or max_moves reached
+CM-->>C: result (validated against Cop's own session only)
+C->>C: apply action to E; capture check against E (both true positions)
+C->>TM: sync_barriers(...) [only if Cop placed a barrier]
+Note over T,C: repeat until capture or max_moves reached — E (the ground-truth\nmirror) lives only in the orchestrator; neither MCP server ever sees it
 ```
 
 ## Architectural decisions (ADRs)
@@ -117,6 +117,32 @@ Note over T,C: repeat until capture or max_moves reached
 
 - **Decision:** `config/config.yaml` (YAML over JSON) for human-editable
   comments next to each parameter.
+
+### ADR-5: No object shared between the Cop and Thief MCP servers
+
+- **Decision:** each server owns its own independent `AgentSession`
+  (own position, own barrier set, own inbox) — see
+  `src/mcp_servers/session.py`. The orchestrator is the only thing that
+  ever sees both agents' true positions, via its own `Board` mirror
+  (`src/engine/board.py`, reused as-is from Phase 1); it relays messages
+  between servers (`receive_message`), syncs barrier placements
+  (`sync_barriers`), and computes capture/visibility itself.
+- **History:** Phase 1/2/4 originally had both servers built from one
+  shared `GameSession` object in the same process — convenient, but it
+  only worked because both servers ran in one process. It silently broke
+  the "two independent servers" requirement the moment they'd be deployed
+  separately, and made the planned Phase 7 bonus (talking to a partner
+  group's independently-deployed server) impossible outright. Phase 5
+  replaced it with this design before doing any real cloud deployment.
+- **Rationale:** matches the Dec-POMDP framing more faithfully too — the
+  environment (full state `S`) should be owned by the system stepping it
+  forward, not by one player's own infrastructure; the orchestrator is
+  that stepping mechanism, and now actually behaves like it.
+- **Trade-off:** more tool calls per turn (an explicit relay/sync call
+  instead of a free shared write) and two new tools
+  (`receive_message`, `sync_barriers`) beyond the assignment's minimum
+  list — both within the assignment's explicit allowance for custom
+  tools/rules that don't contradict the core instructions.
 
 ## Data flow
 

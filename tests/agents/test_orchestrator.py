@@ -8,7 +8,11 @@ import asyncio
 import random
 from unittest.mock import MagicMock
 
-from src.agents.orchestrator import run_subgame_via_mcp
+import pytest
+
+from src.agents import orchestrator
+from src.engine.start_positions import random_start_positions
+from src.agents.orchestrator import run_series_via_mcp, run_subgame_via_mcp
 
 
 def _fake_llm_client():
@@ -53,3 +57,45 @@ def test_legacy_path_without_llm_client_keeps_fixed_template_message():
     assert "belief" not in first_turn
     assert first_turn["message"] in {"thief moved N.", "thief moved S.", "thief moved E.", "thief moved W.",
                                       "thief moved NE.", "thief moved NW.", "thief moved SE.", "thief moved SW."}
+
+
+_SCORING = {"cop_win": 20, "thief_win": 10, "cop_loss": 5, "thief_loss": 5}
+
+
+def test_technical_loss_is_voided_and_retried_without_corrupting_the_series(monkeypatch):
+    """Phase 5: a sub-game that fails technically (MCP unreachable, etc.)
+    must be voided and re-run in place — the series still ends with
+    exactly `num_games` valid sub-games, not a duplicate or a gap."""
+    calls = {"count": 0}
+
+    async def flaky_run_subgame(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise ConnectionError("mcp server unreachable")
+        return {"winner": "cop", "moves_taken": 1, "transcript": []}
+
+    monkeypatch.setattr(orchestrator, "run_subgame_via_mcp", flaky_run_subgame)
+
+    series = asyncio.run(run_series_via_mcp(
+        grid_size=(3, 3), max_moves=5, num_games=2, max_barriers=5,
+        scoring=_SCORING, start_positions_fn=random_start_positions, seed=1,
+    ))
+
+    assert len(series["sub_games"]) == 2
+    assert len(series["technical_losses"]) == 1
+    assert series["technical_losses"][0]["sub_game_index"] == 1
+    assert calls["count"] == 3  # 1 failed attempt on sub-game 1 + 2 successful sub-games
+
+
+def test_persistent_technical_failure_gives_up_after_max_retries(monkeypatch):
+    async def always_fails(*args, **kwargs):
+        raise ConnectionError("mcp server unreachable")
+
+    monkeypatch.setattr(orchestrator, "run_subgame_via_mcp", always_fails)
+
+    with pytest.raises(RuntimeError, match="technical failure"):
+        asyncio.run(run_series_via_mcp(
+            grid_size=(3, 3), max_moves=5, num_games=1, max_barriers=5,
+            scoring=_SCORING, start_positions_fn=random_start_positions, seed=1,
+            max_technical_retries=2,
+        ))

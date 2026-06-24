@@ -29,6 +29,9 @@ results/**/*.json
 results/**/*.csv
 !results/.gitkeep
 
+# Revocation list (runtime state, not source; also lists live token values)
+data/revoked_tokens.json
+
 # Figures generated at run time (keep committed ones explicitly)
 figures/*.tmp
 

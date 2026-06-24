@@ -1,52 +1,100 @@
-"""Shared sub-game session: the single authoritative Board plus the two
-agents' message inboxes.
+"""Per-agent session: everything ONE MCP server needs to validate its own
+agent's moves, with no shared object between the Cop and Thief servers.
 
-Both the Cop and Thief MCP servers apply actions against this one Board
-(matching the Container diagram in docs/PLAN.md — both servers call the same
-Game Engine), but each server only ever reads its *own* inbox. The opponent's
-inbox is filled exclusively by the other server's `send_message`, never read
-directly — that keeps the natural-language channel as the only coupling
-between the two agents, preserving partial observability.
+This is what makes the two servers genuinely independently-deployable
+(including against a totally separate partner group's server for the
+Phase 7 bonus) rather than two API surfaces over one shared Python object
+in a single process. Movement legality only needs this agent's own
+position plus the barrier set (synced explicitly via `sync_barriers`, see
+docs/API.md) — never the opponent's position. Anything that legitimately
+needs both agents' true positions (capture detection, visibility checks)
+is the orchestrator's job, not this server's — see
+`src/agents/orchestrator.py`.
 """
 
-from src.engine.board import Board
+from src.engine.board import DIRECTIONS
 
 Agent = str  # "cop" | "thief"
+Position = tuple[int, int]
 
 
-class GameSession:
-    """Engine + per-agent inboxes + move counter for one sub-game."""
+class AgentSession:
+    """Authoritative state for ONE agent's own server: position, barriers
+    known to this server, inbox, and move counter."""
 
-    def __init__(self, grid_size: tuple[int, int], max_moves: int, max_barriers: int,
-                 visibility_radius: int = 2):
-        """`visibility_radius` (cells, Manhattan) is the Phase 4 partial-
-        observability cutoff for `observe_opponent` — real callers should
-        pass `config.yaml: observation.visibility_radius`, never a literal.
+    def __init__(self, agent: Agent, grid_size: tuple[int, int], max_moves: int,
+                 max_barriers: int = 0, visibility_radius: int = 2):
+        """`max_barriers` is 0 for the Thief — it can never place one, so it
+        has nothing to cap. `visibility_radius` (cells, Manhattan) is the
+        Phase 4 partial-observability cutoff for `observe_opponent`.
         """
-        self.board = Board(grid_size, max_barriers)
+        self.agent = agent
+        self.rows, self.cols = grid_size
         self.max_moves = max_moves
+        self.max_barriers = max_barriers
         self.visibility_radius = visibility_radius
+        self.position: Position | None = None
+        self.barriers: set[Position] = set()
+        self.barriers_placed = 0
         self.move_number = 0
-        self.inboxes: dict[Agent, list[dict]] = {"cop": [], "thief": []}
+        self.inbox: list[dict] = []
 
-    def start(self, cop_pos: tuple[int, int], thief_pos: tuple[int, int]) -> None:
-        self.board.set_start_positions(cop_pos, thief_pos)
+    def start(self, position: Position) -> None:
+        self.position = position
 
-    def deliver_message(self, to_agent: Agent, from_agent: Agent, text: str) -> dict:
-        """Append an NL message to `to_agent`'s inbox; returns the stored entry."""
+    def in_bounds(self, pos: Position) -> bool:
+        r, c = pos
+        return 0 <= r < self.rows and 0 <= c < self.cols
+
+    def move(self, direction: str) -> dict:
+        """Validate and apply a move against this server's own
+        position/barriers/bounds. Never reports `captured` — this server
+        has no way to know the opponent's position; the orchestrator
+        decides that from its own ground-truth mirror.
+        """
+        if direction not in DIRECTIONS:
+            return {"accepted": False, "reason": "unknown_direction"}
+        dr, dc = DIRECTIONS[direction]
+        target = (self.position[0] + dr, self.position[1] + dc)
+        if not self.in_bounds(target):
+            return {"accepted": False, "reason": "out_of_bounds"}
+        if target in self.barriers:
+            return {"accepted": False, "reason": "blocked_by_barrier"}
+        self.position = target
+        return {"accepted": True, "new_position": target}
+
+    def place_barrier(self) -> dict:
+        """Cop-only (enforced by the caller, see factory.py): barricade this
+        agent's current cell."""
+        if self.barriers_placed >= self.max_barriers:
+            return {"accepted": False, "reason": "no_barriers_remaining"}
+        self.barriers.add(self.position)
+        self.barriers_placed += 1
+        return {"accepted": True, "barriers_remaining": self.max_barriers - self.barriers_placed}
+
+    def sync_barriers(self, barriers: list[Position]) -> None:
+        """Overwrite this server's local barrier set — called by the
+        orchestrator on the *other* agent's server right after a successful
+        `place_barrier`, since barriers must block both agents but only the
+        Cop's own server learns about a new one directly."""
+        self.barriers = {tuple(b) for b in barriers}
+
+    def deliver_message(self, from_agent: Agent, text: str) -> dict:
+        """Append a message to this agent's own inbox. Called by the
+        orchestrator (relaying the opponent's message), never by the
+        opponent's server directly — servers never talk to each other."""
         entry = {"from": from_agent, "text": text, "turn": self.move_number}
-        self.inboxes[to_agent].append(entry)
+        self.inbox.append(entry)
         return entry
 
-    def latest_message(self, agent: Agent) -> dict | None:
-        """Most recent message addressed to `agent`, or None if its inbox is empty."""
-        inbox = self.inboxes[agent]
-        return inbox[-1] if inbox else None
+    def latest_message(self) -> dict | None:
+        return self.inbox[-1] if self.inbox else None
 
     def moves_remaining(self) -> int:
         return max(self.max_moves - self.move_number, 0)
 
     def advance_round(self) -> None:
-        """Call once both agents have acted in a round (mirrors
-        `run_subgame`'s loop variable in src/engine/subgame.py)."""
+        """Call once this agent has acted — informational only (feeds
+        `moves_remaining` back to the agent); the orchestrator's own loop
+        is what actually enforces `max_moves`/survival."""
         self.move_number += 1
