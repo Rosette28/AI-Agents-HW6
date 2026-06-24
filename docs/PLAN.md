@@ -74,10 +74,22 @@ Note over T,C: repeat until capture or max_moves reached
 
 ### ADR-1: LLM deployment approach
 
-- **Decision:** Approach 1 — public cloud API (Anthropic to start).
+- **Decision:** Approach 1 — public cloud API, direct Anthropic API
+  (`claude-haiku-4-5-20251001`), paid tier.
 - **Rationale:** Simplest to stand up reliably for grading; conversations
-  are short so token cost stays low; avoids exposing a local machine or
-  dealing with firewall/NAT issues during a graded cloud run.
+  are short so token cost stays low (this workload's full token volume
+  across the whole assignment's expected ~8-12 runs is on the order of
+  $1-3 even at Haiku pricing); avoids exposing a local machine or dealing
+  with firewall/NAT issues during a graded cloud run. A dedicated paid key
+  has no shared-pool contention, unlike the free tiers tried first.
+- **History:** Groq's free tier (`llama-3.1-8b-instant`) hit a 6,000
+  token/minute cap almost immediately under this workload's ~2 LLM
+  calls/turn, causing multi-minute stalls. OpenRouter's free-tier models
+  (tried next, with a model-fallback list) turned out to be rate-limited
+  upstream in a *global* pool shared across all OpenRouter users, not just
+  this key — unpredictable independent of our own usage. Settled on a
+  paid Anthropic key for a dedicated, non-shared capacity. Full history in
+  the `docs/TODO.md` notes log.
 - **Alternatives considered:** Approach 2 (secured local Ollama) rejected —
   adds a mandatory security layer (ngrok/Nginx) for marginal benefit on a
   short-lived academic project. Approach 3 (hybrid) reconsidered only if

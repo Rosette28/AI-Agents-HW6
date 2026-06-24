@@ -101,7 +101,7 @@ Everything in this PRD serves that claim.
   bonus inter-group game is a stretch goal, not required for the base grade.
 
 **Dependencies**
-- `fastmcp` for MCP servers, a cloud LLM SDK (Anthropic to start), Gmail API
+- `fastmcp` for MCP servers, a cloud LLM SDK (Anthropic, paid tier), Gmail API
   (`google-api-python-client`) for reporting, `pyyaml` for config, `pandas`/
   `matplotlib` for analysis graphs, `pytest` for tests.
 

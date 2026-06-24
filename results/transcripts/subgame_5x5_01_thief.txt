@@ -1,0 +1,301 @@
+Sub-game 1 on a 5x5 grid — winner: thief
+
+--- Turn 1: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm somewhere in the middle of the grid, moving cautiously around the edges.
+Action: {'type': 'move', 'direction': 'W'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 25}
+
+--- Turn 2: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving northwest this turn and have no clear read on where you are—care to give me a hint about your location?
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [3, 2], 'captured': False, 'moves_remaining': 25, 'barriers_remaining': 5}
+
+--- Turn 3: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northeast toward the river, visibility is terrible out here.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 24}
+
+--- Turn 4: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and blocking my current position—come find me if you dare.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 4, 'moves_remaining': 24}
+
+--- Turn 5: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading south towards the river - I can see the banks getting clearer down here.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 23}
+
+--- Turn 6: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and blocking this cell—it's a strategic position I want to deny you.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 3, 'moves_remaining': 23}
+
+--- Turn 7: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm somewhere in the middle area, heading toward the edges where there's more room to maneuver.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 22}
+
+--- Turn 8: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and blocking this spot—come test your luck elsewhere.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 2, 'moves_remaining': 22}
+
+--- Turn 9: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the northern edge of the grid.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 21}
+
+--- Turn 10: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and placing a barrier here to control the board.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 1, 'moves_remaining': 21}
+
+--- Turn 11: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northeast toward the corner - that's where the action is!
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 20}
+
+--- Turn 12: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and blocking this spot—nowhere to run from here.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 0, 'moves_remaining': 20}
+
+--- Turn 13: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the eastern edge—plenty of space to work with there.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 19}
+
+--- Turn 14: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn - hope you're ready to play!
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 19, 'barriers_remaining': 0}
+
+--- Turn 15: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northwest to check the perimeter—lots of open space there.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 18}
+
+--- Turn 16: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 18, 'barriers_remaining': 0}
+
+--- Turn 17: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading toward the northern edge of the grid.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 17}
+
+--- Turn 18: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading south to narrow down your location.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 17, 'barriers_remaining': 0}
+
+--- Turn 19: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northeast toward the upper right—plenty of open space out there!
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 16}
+
+--- Turn 20: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn and have no idea where you are—care to give me a hint?
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 16, 'barriers_remaining': 0}
+
+--- Turn 21: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm moving north away from the industrial sector.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 15}
+
+--- Turn 22: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: "I'm heading northeast to cut off your escape routes."
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 15, 'barriers_remaining': 0}
+
+--- Turn 23: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the southern edge of the map.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 14}
+
+--- Turn 24: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I might head toward the quieter parts of the board.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 14, 'barriers_remaining': 0}
+
+--- Turn 25: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm making my way toward the western edge—lots of room to maneuver over there.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 13}
+
+--- Turn 26: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: "I'm in the middle area of the grid and moving south this turn."
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 13, 'barriers_remaining': 0}
+
+--- Turn 27: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: "I'm moving away from the edges, deeper into the middle somewhere."
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 12}
+
+--- Turn 28: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north from my current position—any chance you want to tell me where you are?
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 12, 'barriers_remaining': 0}
+
+--- Turn 29: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: "I'm feeling cornered over here—might have to make a dash eastward soon if you keep closing in like that."
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 11}
+
+--- Turn 30: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm in the middle area and heading south—watch out if you're below me!
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 11, 'barriers_remaining': 0}
+
+--- Turn 31: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the southern edge of the grid.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 10}
+
+--- Turn 32: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 10, 'barriers_remaining': 0}
+
+--- Turn 33: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading south toward the river district, nowhere near the north end.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 9}
+
+--- Turn 34: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving south this turn to narrow down your location.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 9, 'barriers_remaining': 0}
+
+--- Turn 35: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading north toward the market district—plenty of crowds to lose you in there!
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 8}
+
+--- Turn 36: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn and have no idea where you are, so good luck!
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 8, 'barriers_remaining': 0}
+
+--- Turn 37: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I can see you nearby. I'm heading deeper into the eastern passages.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 7}
+
+--- Turn 38: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm getting closer to the edges—better stay sharp.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 7, 'barriers_remaining': 0}
+
+--- Turn 39: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northeast toward the open areas—plenty of room to maneuver out there.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 6}
+
+--- Turn 40: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn—come find me if you can.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 6, 'barriers_remaining': 0}
+
+--- Turn 41: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm making my way toward the northern edge, but the terrain is tricky up there.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 5}
+
+--- Turn 42: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading north to cut off your escape routes.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 5, 'barriers_remaining': 0}
+
+--- Turn 43: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm somewhere in the middle of the grid, heading south.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 4}
+
+--- Turn 44: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading north to search the upper part of the grid.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 4, 'barriers_remaining': 0}
+
+--- Turn 45: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading toward the northern edge, but the terrain up there looks treacherous.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 3}
+
+--- Turn 46: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading south to continue my search.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 3, 'barriers_remaining': 0}
+
+--- Turn 47: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northeast toward the corner - plenty of open space there!
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 0], 'captured': False, 'moves_remaining': 2}
+
+--- Turn 48: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north this turn, let me know if you're nearby!
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 2], 'captured': False, 'moves_remaining': 2, 'barriers_remaining': 0}
+
+--- Turn 49: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading south toward the docks—lots of cover there!
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [0, 0], 'captured': False, 'moves_remaining': 1}
+
+--- Turn 50: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving south this turn. Where are you right now?
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 2], 'captured': False, 'moves_remaining': 1, 'barriers_remaining': 0}

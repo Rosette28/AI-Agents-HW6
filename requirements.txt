@@ -8,6 +8,7 @@ google-auth-httplib2
 google-auth-oauthlib
 pandas
 matplotlib
+streamlit
 pyyaml
 pytest
 pytest-cov

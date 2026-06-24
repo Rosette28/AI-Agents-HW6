@@ -102,7 +102,24 @@ explicitly rather than guessing. Combine this with your direct observation
 a best-guess region or cell, and your confidence in it.
 ```
 
-### 2.4 Rules of engagement (apply to both prompts above)
+### 2.4 Implementation notes (Phase 4, done)
+
+`src/agents/dialogue.py` implements §2.1–§2.3 with one addition: each
+system prompt gets a live `{deception_level}` line ("truthful" | "vague" |
+"mislead"), chosen per turn by `choose_deception_level()` — a weighted
+random pick, Thief bluffing more often than Cop (40%/15% "mislead" rates
+respectively), since an evading party benefits more from misdirection than
+a pursuer does. This operationalizes the prompts' "you are not required to
+be truthful" line into something measurable rather than leaving it
+entirely to the model's own judgment every turn.
+
+The belief-update prompt (§2.3) is implemented in `src/agents/belief.py`
+as a JSON-only completion (`{"row", "col", "confidence", "note"}`); a
+direct observation from the new `observe_opponent` MCP tool (within
+`observation.visibility_radius`) always overrides the NL-derived estimate,
+matching the priority order in `docs/prd/nl-dialogue.md`.
+
+### 2.5 Rules of engagement (apply to both prompts above)
 
 - No numeric coordinates may appear in any message sent to the opponent.
 - Tool calls are the only way to affect the game state — the LLM must

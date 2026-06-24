@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 
 from src.mcp_servers.session import Agent, GameSession
+from src.strategy.heuristic import manhattan_distance
 
 
 def build_server(name: str, agent: Agent, session: GameSession, verifier: StaticTokenVerifier) -> FastMCP:
@@ -43,6 +44,18 @@ def build_server(name: str, agent: Agent, session: GameSession, verifier: Static
         """
         pos = session.board.cop_pos if agent == "cop" else session.board.thief_pos
         return {"agent": agent, "position": list(pos) if pos else None}
+
+    @server.tool
+    def observe_opponent() -> dict:
+        """Partial observation: the opponent's true position, but only if
+        within `session.visibility_radius` of this agent's own position —
+        otherwise the agent must rely on the NL channel alone.
+        """
+        own_pos = session.board.cop_pos if agent == "cop" else session.board.thief_pos
+        opponent_pos = session.board.thief_pos if agent == "cop" else session.board.cop_pos
+        if manhattan_distance(own_pos, opponent_pos) <= session.visibility_radius:
+            return {"visible": True, "position": list(opponent_pos)}
+        return {"visible": False, "position": None}
 
     @server.tool
     def choose_action(action: dict) -> dict:

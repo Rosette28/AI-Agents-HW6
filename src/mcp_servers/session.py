@@ -17,9 +17,15 @@ Agent = str  # "cop" | "thief"
 class GameSession:
     """Engine + per-agent inboxes + move counter for one sub-game."""
 
-    def __init__(self, grid_size: tuple[int, int], max_moves: int, max_barriers: int):
+    def __init__(self, grid_size: tuple[int, int], max_moves: int, max_barriers: int,
+                 visibility_radius: int = 2):
+        """`visibility_radius` (cells, Manhattan) is the Phase 4 partial-
+        observability cutoff for `observe_opponent` — real callers should
+        pass `config.yaml: observation.visibility_radius`, never a literal.
+        """
         self.board = Board(grid_size, max_barriers)
         self.max_moves = max_moves
+        self.visibility_radius = visibility_radius
         self.move_number = 0
         self.inboxes: dict[Agent, list[dict]] = {"cop": [], "thief": []}
 

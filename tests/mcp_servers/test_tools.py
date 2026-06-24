@@ -11,8 +11,9 @@ from src.mcp_servers.session import GameSession
 from src.mcp_servers.thief_server import build_thief_server
 
 
-def _build(grid_size=(1, 2), max_moves=25, max_barriers=5, cop_pos=(0, 0), thief_pos=(0, 1)):
-    session = GameSession(grid_size, max_moves, max_barriers)
+def _build(grid_size=(1, 2), max_moves=25, max_barriers=5, cop_pos=(0, 0), thief_pos=(0, 1),
+           visibility_radius=2):
+    session = GameSession(grid_size, max_moves, max_barriers, visibility_radius)
     session.start(cop_pos, thief_pos)
     return session, build_cop_server(session), build_thief_server(session)
 
@@ -69,6 +70,28 @@ def test_thief_cannot_place_barrier():
 
     result = asyncio.run(run())
     assert result == {"accepted": False, "reason": "illegal_action_for_agent"}
+
+
+def test_observe_opponent_visible_within_radius():
+    _, cop_server, _ = _build(grid_size=(3, 3), cop_pos=(0, 0), thief_pos=(0, 1), visibility_radius=2)
+
+    async def run():
+        async with Client(cop_server) as cop:
+            return (await cop.call_tool("observe_opponent")).data
+
+    result = asyncio.run(run())
+    assert result == {"visible": True, "position": [0, 1]}
+
+
+def test_observe_opponent_not_visible_outside_radius():
+    _, cop_server, _ = _build(grid_size=(5, 5), cop_pos=(0, 0), thief_pos=(4, 4), visibility_radius=2)
+
+    async def run():
+        async with Client(cop_server) as cop:
+            return (await cop.call_tool("observe_opponent")).data
+
+    result = asyncio.run(run())
+    assert result == {"visible": False, "position": None}
 
 
 def test_move_out_of_bounds_is_rejected_with_reason():

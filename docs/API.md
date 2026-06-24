@@ -37,6 +37,20 @@ Internal/scoring-only — returns the calling agent's own exact position.
 { "agent": "cop", "position": [2, 3] }
 ```
 
+## `observe_opponent() -> Observation`
+
+Partial observation (Phase 4): the opponent's true position, but only if
+within `session.visibility_radius` (Manhattan distance) of the caller's own
+position. Outside that radius the agent gets no direct signal and must rely
+on the NL channel (`read_message`) and its own belief update.
+
+```json
+// within radius
+{ "visible": true, "position": [2, 3] }
+// outside radius
+{ "visible": false, "position": null }
+```
+
 ## `choose_action(action: Action) -> ActionResult`
 
 Move or (Cop-only) place a barrier. Validated against the game engine.

@@ -21,7 +21,7 @@ observation:
 llm:
   approach: "cloud_api"  # one of: cloud_api | secured_ollama | hybrid
   provider: "anthropic"  # anthropic | openai | gemini
-  model: ""              # filled in once chosen; never hardcode elsewhere
+  model: "claude-haiku-4-5-20251001"  # cheap/fast — a 6-sub-game series is hundreds of calls
 
 strategy:
   algorithm: "heuristic"  # heuristic | q_learning

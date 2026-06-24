@@ -1,0 +1,25 @@
+Sub-game 2 on a 5x5 grid — winner: cop
+
+--- Turn 1: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I can see you're close by. I'm heading toward the eastern edge of the grid.
+Action: {'type': 'move', 'direction': 'SE'}
+Result: {'accepted': True, 'new_position': [4, 4], 'captured': False, 'moves_remaining': 25}
+
+--- Turn 2: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm staying put and blocking this cell—it's a strategic anchor point for me.
+Action: {'type': 'place_barrier'}
+Result: {'accepted': True, 'barriers_remaining': 4, 'moves_remaining': 25}
+
+--- Turn 3: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the northern edge of the board.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [3, 4], 'captured': False, 'moves_remaining': 24}
+
+--- Turn 4: COP ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I can see you clearly. I'm moving southeast now.
+Action: {'type': 'move', 'direction': 'SE'}
+Result: {'accepted': True, 'new_position': [3, 4], 'captured': True, 'moves_remaining': 24, 'barriers_remaining': 4}
