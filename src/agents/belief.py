@@ -69,19 +69,34 @@ def update_belief(agent: str, opponent_message: dict | None,
                   note=parsed.get("note", ""))
 
 
-def make_belief_board(true_board: Board, agent: str, belief: Belief) -> Board:
+def make_belief_board(true_board: Board, agent: str, belief: Belief, rng=None) -> Board:
     """Build a proxy `Board` for the existing strategy modules: own position
     and barriers are real (always known to oneself), the opponent's position
-    is the believed estimate rather than the true one. Falls back to the
-    grid center when there is no estimate yet — a neutral "no information"
-    guess, not a leak of the true position.
+    is the believed estimate rather than the true one.
+
+    With no estimate yet, falls back to a "no information" guess rather
+    than leaking the true position. If `rng` is given, that guess is a
+    fresh random cell each call — re-rolled every turn there's no real
+    signal, so a distance-maximizing/minimizing strategy reading this board
+    doesn't lock onto one fixed point. (A *fixed* fallback, e.g. always the
+    grid center, makes a "maximize distance from the fallback" strategy
+    degenerate into oscillating between the same one or two farthest cells
+    every time — a predictable pattern an opponent could learn to exploit.)
+    Without `rng` (e.g. callers that don't have one), keeps the original
+    deterministic grid-center fallback.
     """
     proxy = Board((true_board.rows, true_board.cols), true_board.max_barriers)
     proxy.barriers = true_board.barriers
     proxy.barriers_placed = true_board.barriers_placed
 
     own_pos = true_board.cop_pos if agent == "cop" else true_board.thief_pos
-    opponent_pos = belief.estimate or (true_board.rows // 2, true_board.cols // 2)
+
+    if belief.estimate is not None:
+        opponent_pos = belief.estimate
+    elif rng is not None:
+        opponent_pos = (rng.randrange(true_board.rows), rng.randrange(true_board.cols))
+    else:
+        opponent_pos = (true_board.rows // 2, true_board.cols // 2)
 
     if agent == "cop":
         proxy.cop_pos, proxy.thief_pos = own_pos, opponent_pos

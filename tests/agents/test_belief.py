@@ -4,6 +4,7 @@ feed the existing strategy modules without leaking the true opponent
 position.
 """
 
+import random
 from unittest.mock import MagicMock
 
 from src.agents.belief import Belief, make_belief_board, update_belief
@@ -75,6 +76,24 @@ def test_make_belief_board_defaults_to_grid_center_with_no_estimate():
     proxy = make_belief_board(board, "thief", belief)
     assert proxy.thief_pos == (2, 3)  # own position stays true
     assert proxy.cop_pos == (2, 2)  # grid center fallback
+
+
+def test_make_belief_board_randomizes_no_estimate_fallback_when_rng_given():
+    board = _board(grid_size=(5, 5))
+    belief = Belief(estimate=None, confidence="none", note="nothing yet")
+    rng = random.Random(0)
+    fallbacks = {make_belief_board(board, "thief", belief, rng=rng).cop_pos for _ in range(30)}
+    # Not the single fixed grid-center point every time, and not just one
+    # alternative either — genuinely re-rolled per call, not a second fixed point.
+    assert fallbacks != {(2, 2)}
+    assert len(fallbacks) > 2
+
+
+def test_make_belief_board_stays_deterministic_without_rng():
+    board = _board(grid_size=(5, 5))
+    belief = Belief(estimate=None, confidence="none", note="nothing yet")
+    proxy = make_belief_board(board, "thief", belief)
+    assert proxy.cop_pos == (2, 2)  # unchanged behavior for callers with no rng
 
 
 def test_make_belief_board_copies_barriers_not_a_new_empty_set():
