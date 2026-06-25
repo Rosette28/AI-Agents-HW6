@@ -34,6 +34,8 @@ async def run_bonus_half_as_peer(
         seed = str((series_seed, half_index, sub_game_index))
         cop_pos, thief_pos = random_start_positions(grid_size, rng=random.Random(seed))
         my_start_pos = cop_pos if my_role == "cop" else thief_pos
+        print(f"  Sub-game {sub_game_index}/{num_sub_games} | my start: {my_start_pos} | "
+              f"cop start: {cop_pos} | thief start: {thief_pos}")
 
         result = await run_subgame_as_peer(
             my_role, my_endpoint, partner_endpoint, llm_client, grid_size, max_moves,
@@ -44,5 +46,8 @@ async def run_bonus_half_as_peer(
         cop_total += cop_points
         thief_total += thief_points
         sub_games.append(result)
+        print(f"  Sub-game {sub_game_index} done | winner: {result['winner']} | "
+              f"moves: {result['moves_taken']} | cop +{cop_points} thief +{thief_points} | "
+              f"running totals → cop: {cop_total} thief: {thief_total}")
 
     return {"totals": {"cop": cop_total, "thief": thief_total}, "sub_games": sub_games}

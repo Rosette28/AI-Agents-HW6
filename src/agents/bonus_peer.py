@@ -53,6 +53,7 @@ async def wait_for_opponent_move(mcp_client: Client, last_seen: dict | None) -> 
         message = (await mcp_client.call_tool("read_message")).data
         if message and message != last_seen:
             return message
+        print(f"    Waiting for opponent... {int(waited)}s elapsed", end="\r", flush=True)
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
         waited += POLL_INTERVAL_SECONDS
     raise RuntimeError("Timed out waiting for the opponent's move (Phase 7 bonus peer protocol) "

@@ -26,6 +26,7 @@ async def run_subgame_as_peer(my_role: str, my_endpoint: dict, partner_endpoint:
         captured = False
 
         for round_number in range(1, max_moves + 1):
+            print(f"    Round {round_number}/{max_moves}", end="\r", flush=True)
             if my_role == "cop":
                 last_seen = await wait_for_opponent_move(my_client, last_seen)
                 transcript.append({"agent": opponent_role, "message": last_seen["text"]})
