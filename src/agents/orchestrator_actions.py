@@ -63,7 +63,9 @@ async def act(client: Client, true_board: Board, agent: str, barriers_remaining:
         direct_observation = (
             await client.call_tool("observe_opponent", {"opponent_position": list(opponent_pos)})
         ).data
-        belief = update_belief(agent, opponent_message, direct_observation, llm_client)
+        previous_belief = beliefs.get(agent)
+        belief = update_belief(agent, opponent_message, direct_observation, llm_client,
+                                previous_belief=previous_belief, moves_elapsed=1)
         beliefs[agent] = belief
         board_for_policy = make_belief_board(true_board, agent, belief, rng=rng)
 

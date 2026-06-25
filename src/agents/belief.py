@@ -47,12 +47,32 @@ def _parse_nl_belief(agent: str, opponent_message: dict | None, llm_client) -> d
     return llm_client.generate_json(system_prompt, user_prompt)
 
 
+def _chebyshev_distance(a: Position, b: Position) -> int:
+    """Max single-step reach per move is 1 cell (8-directional movement),
+    so Chebyshev (not Manhattan) distance is the right "how far could they
+    plausibly have gotten" measure.
+    """
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+
+
 def update_belief(agent: str, opponent_message: dict | None,
-                   direct_observation: dict, llm_client) -> Belief:
+                   direct_observation: dict, llm_client,
+                   previous_belief: "Belief | None" = None,
+                   moves_elapsed: int = 1) -> Belief:
     """Merge the NL-derived estimate with the direct observation.
 
     `direct_observation` is the raw `observe_opponent` tool response:
     `{"visible": bool, "position": [r, c] | None}`.
+
+    `previous_belief`/`moves_elapsed` add a physical-plausibility check on
+    the NL-parsed estimate: the opponent can move at most one cell per turn
+    (8-directional), so a new estimate that's farther than `moves_elapsed`
+    cells from the last known estimate is physically impossible — either
+    the LLM misparsed the message, or the opponent is lying. Either way,
+    that claim shouldn't be trusted at face value; its confidence is capped
+    at "low" with a flagged note, rather than rejected outright (it might
+    still carry a *direction* worth weighting) or accepted as "high" (which
+    would let a bluffing opponent dictate the believer's confidence).
     """
     if direct_observation.get("visible"):
         pos = direct_observation["position"]
@@ -64,9 +84,23 @@ def update_belief(agent: str, opponent_message: dict | None,
         note = "no reliable information from message or observation"
         return Belief(estimate=None, confidence="none", note=note)
 
-    return Belief(estimate=(parsed["row"], parsed["col"]),
-                  confidence=parsed.get("confidence", "low"),
-                  note=parsed.get("note", ""))
+    estimate = (parsed["row"], parsed["col"])
+    confidence = parsed.get("confidence", "low")
+    note = parsed.get("note", "")
+
+    if previous_belief is not None and previous_belief.estimate is not None:
+        reach = _chebyshev_distance(previous_belief.estimate, estimate)
+        if reach > moves_elapsed:
+            confidence = "low"
+            note = (f"flagged implausible: claims a move of {reach} cells in "
+                     f"{moves_elapsed} turn(s) since the last estimate "
+                     f"{previous_belief.estimate} — trusting the claim less, "
+                     f"not discarding it. ({note})" if note else
+                     f"flagged implausible: claims a move of {reach} cells in "
+                     f"{moves_elapsed} turn(s) since the last estimate "
+                     f"{previous_belief.estimate}.")
+
+    return Belief(estimate=estimate, confidence=confidence, note=note)
 
 
 def make_belief_board(true_board: Board, agent: str, belief: Belief, rng=None) -> Board:

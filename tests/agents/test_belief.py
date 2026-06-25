@@ -78,6 +78,40 @@ def test_make_belief_board_defaults_to_grid_center_with_no_estimate():
     assert proxy.cop_pos == (2, 2)  # grid center fallback
 
 
+def test_implausible_jump_is_downgraded_to_low_confidence_not_discarded():
+    llm_client = MagicMock()
+    llm_client.generate_json.return_value = {"row": 4, "col": 4, "confidence": "high", "note": "claims far corner"}
+    direct_observation = {"visible": False, "position": None}
+    previous_belief = Belief(estimate=(0, 0), confidence="high", note="last seen here")
+    belief = update_belief("cop", {"text": "I'm in the far corner"}, direct_observation,
+                            llm_client, previous_belief=previous_belief, moves_elapsed=1)
+    # (0,0) -> (4,4) is 4 cells in 1 turn; only 1 cell is physically reachable.
+    assert belief.estimate == (4, 4)  # not discarded
+    assert belief.confidence == "low"  # but no longer trusted at face value
+    assert "implausible" in belief.note
+
+
+def test_plausible_move_keeps_parsed_confidence():
+    llm_client = MagicMock()
+    llm_client.generate_json.return_value = {"row": 1, "col": 0, "confidence": "high", "note": "one step over"}
+    direct_observation = {"visible": False, "position": None}
+    previous_belief = Belief(estimate=(0, 0), confidence="high", note="last seen here")
+    belief = update_belief("cop", {"text": "I moved south"}, direct_observation,
+                            llm_client, previous_belief=previous_belief, moves_elapsed=1)
+    assert belief.estimate == (1, 0)
+    assert belief.confidence == "high"  # within 1 cell in 1 turn — not flagged
+    assert "implausible" not in belief.note
+
+
+def test_no_previous_belief_skips_plausibility_check():
+    llm_client = MagicMock()
+    llm_client.generate_json.return_value = {"row": 4, "col": 4, "confidence": "high", "note": "first guess"}
+    direct_observation = {"visible": False, "position": None}
+    belief = update_belief("cop", {"text": "anything"}, direct_observation, llm_client,
+                            previous_belief=None, moves_elapsed=1)
+    assert belief.confidence == "high"  # nothing to compare against yet
+
+
 def test_make_belief_board_randomizes_no_estimate_fallback_when_rng_given():
     board = _board(grid_size=(5, 5))
     belief = Belief(estimate=None, confidence="none", note="nothing yet")
