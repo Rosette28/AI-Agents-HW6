@@ -2,24 +2,100 @@ Sub-game 2 on a 5x5 grid — winner: cop
 
 --- Turn 1: THIEF ---
 Belief: direct observation within visibility radius (confidence: high)
-Message: I can see you're close by. I'm heading toward the eastern edge of the grid.
-Action: {'type': 'move', 'direction': 'SE'}
-Result: {'accepted': True, 'new_position': [4, 4], 'captured': False, 'moves_remaining': 25}
+Message: I see you closing in from the southeast. I'm making a break for the eastern edge—better visibility out there.
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [2, 3], 'moves_remaining': 24}
 
 --- Turn 2: COP ---
 Belief: no reliable information from message or observation (confidence: none)
-Message: I'm staying put and blocking this cell—it's a strategic anchor point for me.
-Action: {'type': 'place_barrier'}
-Result: {'accepted': True, 'barriers_remaining': 4, 'moves_remaining': 25}
+Message: I'm heading north.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [3, 4], 'moves_remaining': 24, 'barriers_remaining': 5}
 
 --- Turn 3: THIEF ---
-Belief: no reliable information from message or observation (confidence: none)
-Message: I'm heading toward the northern edge of the board.
-Action: {'type': 'move', 'direction': 'N'}
-Result: {'accepted': True, 'new_position': [3, 4], 'captured': False, 'moves_remaining': 24}
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'll move NW as intended while misleading the COP about my direction.
+
+"Heading east along the bottom edge—lots of open space down here."
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [1, 2], 'moves_remaining': 23}
 
 --- Turn 4: COP ---
-Belief: direct observation within visibility radius (confidence: high)
-Message: I can see you clearly. I'm moving southeast now.
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north to close in on the edges where you'll have fewer escape routes.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [4, 4], 'moves_remaining': 23, 'barriers_remaining': 5}
+
+--- Turn 5: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving toward the quieter corners where fewer eyes might look.
+Action: {'type': 'move', 'direction': 'SW'}
+Result: {'accepted': True, 'new_position': [2, 1], 'moves_remaining': 22}
+
+--- Turn 6: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading south to cut off your escape route—you won't get past me this time.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [3, 4], 'moves_remaining': 22, 'barriers_remaining': 5}
+
+--- Turn 7: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'll move SW as intended while maintaining a vague posture in my message.
+
+"I'm heading toward the edges where the space opens up."
+Action: {'type': 'move', 'direction': 'SW'}
+Result: {'accepted': True, 'new_position': [3, 0], 'moves_remaining': 21}
+
+--- Turn 8: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm starting to close in on you - heading southwest now to narrow down where you could be hiding.
+Action: {'type': 'move', 'direction': 'SW'}
+Result: {'accepted': True, 'new_position': [4, 3], 'moves_remaining': 21, 'barriers_remaining': 5}
+
+--- Turn 9: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northwest toward the industrial district—plenty of cover there.
 Action: {'type': 'move', 'direction': 'SE'}
-Result: {'accepted': True, 'new_position': [3, 4], 'captured': True, 'moves_remaining': 24, 'barriers_remaining': 4}
+Result: {'accepted': True, 'new_position': [4, 1], 'moves_remaining': 20}
+
+--- Turn 10: COP ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I see you clearly nearby. Don't bother running east—I'm heading that way to cut you off.
+Action: {'type': 'move', 'direction': 'W'}
+Result: {'accepted': True, 'new_position': [4, 2], 'moves_remaining': 20, 'barriers_remaining': 5}
+
+--- Turn 11: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm somewhere in the lower half of the board, moving unpredictably.
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [3, 0], 'moves_remaining': 19}
+
+--- Turn 12: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading toward the northern reaches of the grid.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [3, 2], 'moves_remaining': 19, 'barriers_remaining': 5}
+
+--- Turn 13: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm moving toward the northern reaches of the grid, but the terrain up there has some interesting features I'm exploring.
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [2, 0], 'moves_remaining': 18}
+
+--- Turn 14: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving northwest from my current position.
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [2, 1], 'moves_remaining': 18, 'barriers_remaining': 5}
+
+--- Turn 15: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm pinned down near the eastern edge, going to make a break for the southern districts!
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 0], 'moves_remaining': 17}
+
+--- Turn 16: COP ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm moving northwest from my current position.
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [1, 0], 'moves_remaining': 17, 'barriers_remaining': 5}

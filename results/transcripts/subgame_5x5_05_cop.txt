@@ -1,0 +1,37 @@
+Sub-game 5 on a 5x5 grid — winner: cop
+
+--- Turn 1: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading north toward the river district!
+Action: {'type': 'move', 'direction': 'SE'}
+Result: {'accepted': True, 'new_position': [2, 2], 'moves_remaining': 24}
+
+--- Turn 2: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving north to cut off your escape route.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [1, 1], 'moves_remaining': 24, 'barriers_remaining': 5}
+
+--- Turn 3: THIEF ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I'm heading toward the open spaces where the light is better.
+Action: {'type': 'move', 'direction': 'SE'}
+Result: {'accepted': True, 'new_position': [3, 3], 'moves_remaining': 23}
+
+--- Turn 4: COP ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm somewhere in the middle area, and the hunting is getting interesting.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [2, 1], 'moves_remaining': 23, 'barriers_remaining': 5}
+
+--- Turn 5: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm somewhere in the middle of the grid, heading west.
+Action: {'type': 'move', 'direction': 'W'}
+Result: {'accepted': True, 'new_position': [3, 2], 'moves_remaining': 22}
+
+--- Turn 6: COP ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I can see you clearly. Moving southeast now.
+Action: {'type': 'move', 'direction': 'SE'}
+Result: {'accepted': True, 'new_position': [3, 2], 'moves_remaining': 22, 'barriers_remaining': 5}

@@ -10,7 +10,12 @@ from src.reporting.schema import validate_internal_game_json
 def _series_result() -> dict:
     return {
         "totals": {"cop": 90, "thief": 40},
-        "sub_games": [{"winner": "cop", "moves_taken": 5}],
+        "sub_games": [{
+            "winner": "cop", "moves_taken": 5, "final_cop_pos": (0, 2), "final_thief_pos": (0, 2),
+            "barriers_placed": 0, "cop_points": 20, "thief_points": 5,
+            "transcript": [{"agent": "thief", "action": {"type": "move", "direction": "N"},
+                             "message": "heading north", "belief": {"estimate": None}}],
+        }],
         "technical_losses": [],
     }
 
@@ -40,8 +45,15 @@ def test_build_internal_game_json_matches_schema_and_source_data():
     assert payload["cop_mcp_url"] == "https://cop-mcp-alpha.example.com"
     assert payload["thief_mcp_url"] == "https://thief-mcp-alpha.example.com"
     assert payload["timezone"] == "Asia/Jerusalem"
-    assert payload["sub_games"] == _series_result()["sub_games"]
     assert payload["totals"] == {"cop": 90, "thief": 40}
+    assert payload["sub_games"] == [{
+        "winner": "cop", "moves_taken": 5, "final_cop_pos": (0, 2), "final_thief_pos": (0, 2),
+        "barriers_placed": 0, "cop_points": 20, "thief_points": 5,
+    }]
+    # The full per-turn transcript is dropped from the emailed payload —
+    # not part of the official schema, and it makes a real run's email
+    # impractically long (see src.reporting.game_report's docstring).
+    assert "transcript" not in payload["sub_games"][0]
 
 
 def test_missing_group_section_defaults_to_blank_values_not_a_crash():

@@ -6,6 +6,15 @@ from the caller (ultimately config.yaml) — never hardcoded here.
 
 Position = tuple[int, int]
 
+# Reserved off-board sentinel meaning "opponent position unknown" — used by
+# belief-aware proxy boards (src.agents.belief.make_belief_board) and the
+# strategy modules that read them (src.strategy.heuristic, .q_learning).
+# Lives here, not in src.agents, so both src.agents and src.strategy can
+# depend on it without strategy ever importing from agents (docs/PROMPTS.md's
+# module-dependency rule: src/strategy only depends on src/config + the
+# engine's public interface).
+UNKNOWN_POSITION: Position = (-1, -1)
+
 # 8-direction offsets as (delta_row, delta_col).
 DIRECTIONS: dict[str, tuple[int, int]] = {
     "N": (-1, 0),

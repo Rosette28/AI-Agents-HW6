@@ -1114,3 +1114,42 @@ here in case that changes.
   rather than re-running the whole series, since the GUI just polls
   whatever's already on disk. All four Phase 6 checklist items above are
   now `[x]` — Phase 6 is fully done.
+- 2026-06-25: Strategy hardening, prompted by evaluating whether the
+  current strategies are competitive enough for the (still-deferred)
+  Phase 7 inter-group bonus. Three sequential fixes, each backed up
+  separately (git tags `pre-strategy-rework` → `post-thief-fix` →
+  `post-cop-fix` → this commit):
+  1. **Thief belief-fallback exploit fix.** The Thief's "maximize distance
+     from believed opponent" heuristic defaulted an unknown opponent
+     position to the fixed grid center, which made it oscillate between
+     the same one or two corner cells whenever belief confidence was
+     "none" — a predictable pattern an opponent could learn to exploit.
+  2. **Cop belief plausibility check.** `update_belief` now flags an
+     NL-parsed position claim as implausible (downgrades confidence to
+     "low" rather than discarding it) when it implies the opponent moved
+     farther than physically possible (more than 1 cell per turn,
+     8-directional movement) since the last estimate — so a Cop can't be
+     made falsely "confident" by an internally-inconsistent bluff.
+  3. **Q-learning retrained under partial observability** (the big one).
+     Discovered while building fix #1's replacement that the random-
+     coordinate fallback, while fine for the heuristic, was the wrong
+     shape for a tabular Q-learner (no generalization across a different
+     random coordinate every turn) — redesigned the "no estimate"
+     representation as a shared, reserved sentinel (`UNKNOWN_POSITION =
+     (-1, -1)` in `src/engine/board.py`, not `src/agents`, to respect the
+     strategy-module dependency rule in `docs/PROMPTS.md`) that both the
+     heuristic and Q-learning collapse to one bucket. Retrained both
+     Q-tables against this sentinel + a real visibility-radius check
+     during training (`scripts/train_q_learning.py`, default mode now
+     partial-observability, `--full-visibility` flag preserves the old
+     mode for comparison) — see `docs/prd/strategy.md`'s updated
+     calibration record and `reports/technical_report.md` §5/§8 for the
+     real result: the retrained Cop win-rate does **not** converge (noisy
+     0.23–0.69, ends at 0.38), unlike the clean 1.0 convergence under full
+     visibility — a genuine finding (tabular Q-learning's single shared
+     "unknown" bucket can't represent a turn-varying correct answer), not
+     a tuning failure. 108 tests passing project-wide (90% coverage),
+     `belief.py` now 100%. The Thief fallback fix (#1) was itself revised
+     mid-sequence to use the sentinel instead of a random coordinate, once
+     this generalization problem surfaced — documented in commit history,
+     not hidden.

@@ -165,13 +165,28 @@ and bluffing are doing real work, not just existing on paper.
 
 `results/q_tables/learning_curve.json` (raw data) →
 `figures/learning_curve.png` (rendered by `scripts/plot_learning_curve.py`).
-Rolling (window=100) Cop win-rate climbs from 0.74 at episode 50 to a
-stable 1.0 by episode ~1300, holding there through the full 4000-episode
-run — clean, monotonic convergence with no oscillation, using the
-`config.yaml` defaults (α=0.1, γ=0.9, ε₀=0.2, decay=0.995, floor=0.01).
-Full reasoning for keeping these defaults (rather than retuning) is in
-`docs/prd/strategy.md`'s calibration record — the first run converged
-cleanly enough that there was nothing to fix.
+This is the **retrained**, partial-observability-aware curve (Phase 6 —
+see `docs/prd/strategy.md`'s calibration record for full detail), not the
+original full-visibility one. Rolling (window=100) Cop win-rate
+**oscillates noisily between ~0.23 and 0.69** across the full 4000-episode
+run and ends at 0.38 — it does not converge to a stable policy, unlike the
+original full-visibility run (archived at
+`results/q_tables/learning_curve_full_visibility_baseline.json`, where the
+same hyperparameters converge cleanly to 1.0 by episode ~1300).
+
+This is a real, useful finding, not a failure to tune: once the opponent's
+position collapses into one shared "unknown" state-table bucket whenever
+out of `visibility_radius` (the same sentinel-based representation the
+real game's belief system produces — `UNKNOWN_POSITION` in
+`src/engine/board.py`), that bucket aggregates many genuinely different
+true game situations under a single learned value per action. A tabular
+learner has no way to converge on one "best" action for a bucket whose
+correct answer legitimately varies turn to turn — this is the textbook
+failure mode of applying a Markovian method to a partially-observable
+problem without belief-state augmentation (a proper POMDP solution would
+track a probability distribution over the unknown region, not collapse it
+to one token). No hyperparameter retune was attempted, since the
+oscillation is a property of the state representation, not α/γ/ε.
 
 ## 6. GUI
 
@@ -249,21 +264,31 @@ signal at all (neither in-radius nor a usable NL hint) — the chosen default
 which would never have surfaced under full observability.
 
 **Where did the strategy's "skill ceiling" show up?**
-Two places. First, mechanically: Q-learning converges cleanly to a 1.0 Cop
-win-rate under full observability (§5) — there, the "skill ceiling" is just
-a stronger version of the heuristic's own logic, because full information
-makes the problem easy for any directed strategy. Second, and more
-interestingly: once partial observability and NL bluffing were layered on
-in Phase 4, the *heuristic* strategy (not Q-learning, which trained only
-under full observability and was not retrained against a belief-noisy
-opponent) produced the Thief's 3-of-6 win reversal in the real LLM run —
-the skill ceiling that actually mattered for the assignment's central claim
-came from the orchestration layer (belief + deception), not from the
-decision-making algorithm underneath it. This is worth flagging plainly:
-the Q-learning tables in `results/q_tables/` were trained under full
-visibility and were not the strategy in use during the real Phase 4 run —
-the heuristic was. Retraining Q-learning against a belief-board input
-(rather than the true board) is a natural next step, not yet done.
+Three places, and the third one is the most interesting. First,
+mechanically: Q-learning converges cleanly to a 1.0 Cop win-rate under full
+observability — there, the "skill ceiling" is just a stronger version of
+the heuristic's own logic, because full information makes the problem easy
+for any directed strategy. Second: once partial observability and NL
+bluffing were layered on in Phase 4, the *heuristic* strategy (not the
+original full-visibility Q-learning) produced the Thief's 3-of-6 win
+reversal in the real LLM run — the skill ceiling that mattered for the
+central claim came from the orchestration layer (belief + deception), not
+the decision-making algorithm underneath it. Third — added in this Phase 6
+pass, after retraining Q-learning against the same `UNKNOWN_POSITION`
+sentinel the real belief system uses (§5): the retrained table's Cop
+win-rate **doesn't converge at all under partial observability** — it
+oscillates around 0.38, never stabilizing. That's the skill ceiling
+revealing its actual shape: tabular Q-learning's ceiling under partial
+observability is structurally lower than under full visibility, because a
+single shared "unknown" bucket can't represent the genuinely different
+right answers that situation calls for turn to turn. The Q-learning tables
+in `results/q_tables/` are now trained under the real game's
+partial-observability mechanic, not full visibility — closing the gap this
+question used to flag as outstanding — but the result is itself evidence
+that the *heuristic*, not Q-learning, remains the more reliable choice once
+belief uncertainty is real, since the heuristic at least produces a
+deterministic, explainable fallback (§3(c)) where Q-learning produces
+noise.
 
 **What were the cloud deployment's security trade-offs?**
 Token-based bearer auth per server, with revocation enforced by re-reading

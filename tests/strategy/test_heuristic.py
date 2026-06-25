@@ -3,7 +3,7 @@ Thief opens it, and the Cop barricades when adjacent."""
 
 import random
 
-from src.engine.board import Board
+from src.engine.board import UNKNOWN_POSITION, Board
 from src.strategy.heuristic import (
     heuristic_candidate_actions,
     heuristic_policy,
@@ -60,6 +60,27 @@ def test_candidate_actions_lists_every_direction_exactly_once():
     actions = heuristic_candidate_actions("cop", board, barriers_remaining=0, rng=random.Random(1))
     directions = [a["direction"] for a in actions if a["type"] == "move"]
     assert sorted(directions) == sorted(["N", "S", "E", "W", "NE", "NW", "SE", "SW"])
+
+
+def test_thief_picks_a_random_direction_when_opponent_unknown_not_a_fixed_one():
+    board = Board((5, 5), max_barriers=0)
+    board.set_start_positions(cop_pos=(2, 2), thief_pos=(2, 3))
+    board.cop_pos = UNKNOWN_POSITION  # simulates make_belief_board's "no estimate" case
+    picks = set()
+    for seed in range(20):
+        actions = heuristic_candidate_actions("thief", board, barriers_remaining=0, rng=random.Random(seed))
+        picks.add(actions[0]["direction"])
+    # Not locked onto one or two directions every time, unlike the old
+    # fixed-grid-center-default behavior this replaces.
+    assert len(picks) > 2
+
+
+def test_cop_does_not_barricade_on_unknown_opponent():
+    board = Board((5, 5), max_barriers=5)
+    board.set_start_positions(cop_pos=(2, 2), thief_pos=(2, 3))
+    board.thief_pos = UNKNOWN_POSITION
+    action = heuristic_policy(board, "cop")
+    assert action != {"type": "place_barrier"}
 
 
 def test_candidate_actions_best_pick_is_distance_closing_for_cop():

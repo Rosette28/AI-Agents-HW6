@@ -26,17 +26,27 @@ def build_local_policy(algorithm: str, q_agent: QLearningAgent | None = None):
     return heuristic_policy
 
 
-def build_mcp_candidate_actions(algorithm: str, q_agents: dict[str, QLearningAgent] | None = None):
+def build_mcp_candidate_actions(algorithm: str, q_agents: dict[str, QLearningAgent] | None = None,
+                                 visibility_radius: int | None = None):
     """Returns candidate_actions(agent, board, barriers_remaining, rng) ->
     list[action], for src/agents/orchestrator.py's try-until-accepted loop.
     The Q-table's pick goes first; the heuristic's full ranking follows as
     a fallback list, so the orchestrator never starves even on an
     unseen state or a rejected top pick.
+
+    `visibility_radius` is baked into the closure (not threaded through the
+    `policy_fn(agent, board, barriers_remaining, rng)` call signature
+    itself, which every caller already relies on staying belief-agnostic
+    per docs/PROMPTS.md) and passed straight through to
+    `QLearningAgent.choose_action`. It only actually matters when `board`
+    is a true (non-belief) board; against a belief-board proxy the
+    explicit `UNKNOWN_POSITION` sentinel already on `board` takes priority
+    regardless of this value (see `QLearningAgent.state_for`).
     """
     if algorithm == "q_learning" and q_agents:
 
         def candidate_actions(agent, board, barriers_remaining, rng):
-            picked = q_agents[agent].choose_action(board, barriers_remaining)
+            picked = q_agents[agent].choose_action(board, barriers_remaining, visibility_radius=visibility_radius)
             fallback = heuristic_candidate_actions(agent, board, barriers_remaining, rng)
             if picked is None:
                 return fallback

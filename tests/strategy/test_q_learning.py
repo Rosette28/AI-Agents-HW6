@@ -7,7 +7,7 @@ import random
 
 import pytest
 
-from src.engine.board import Board
+from src.engine.board import UNKNOWN_POSITION, Board
 from src.strategy.q_learning import QLearningAgent, legal_actions
 
 
@@ -85,6 +85,44 @@ def test_save_and_load_round_trip(tmp_path):
     assert loaded.agent == "thief"
     assert loaded.epsilon == pytest.approx(0.15)
     assert loaded._q("1,1|2,2", "N") == pytest.approx(3.5)
+
+
+def test_state_for_collapses_to_unknown_bucket_beyond_visibility_radius():
+    board = Board((5, 5), max_barriers=0)
+    board.set_start_positions(cop_pos=(0, 0), thief_pos=(4, 4))  # Manhattan distance 8
+    agent = QLearningAgent("cop", alpha=0.1, gamma=0.9, epsilon=0.0, epsilon_decay=1.0)
+    far_state = agent.state_for(board, visibility_radius=2)
+    near_state = agent.state_for(board, visibility_radius=None)  # no radius = always visible
+    assert far_state.endswith("|?")
+    assert not near_state.endswith("|?")
+
+
+def test_state_for_within_visibility_radius_uses_real_coordinates():
+    board = Board((5, 5), max_barriers=0)
+    board.set_start_positions(cop_pos=(2, 2), thief_pos=(2, 3))  # distance 1
+    agent = QLearningAgent("cop", alpha=0.1, gamma=0.9, epsilon=0.0, epsilon_decay=1.0)
+    state = agent.state_for(board, visibility_radius=2)
+    assert state == "2,2|2,3"
+
+
+def test_state_for_treats_unknown_position_sentinel_as_unknown_regardless_of_radius():
+    board = Board((5, 5), max_barriers=0)
+    board.set_start_positions(cop_pos=(2, 2), thief_pos=(2, 3))
+    board.thief_pos = UNKNOWN_POSITION  # simulates a belief board with no estimate
+    agent = QLearningAgent("cop", alpha=0.1, gamma=0.9, epsilon=0.0, epsilon_decay=1.0)
+    # No visibility_radius passed (inference-time default) — sentinel alone is enough.
+    assert agent.state_for(board).endswith("|?")
+
+
+def test_unknown_bucket_is_shared_across_different_true_positions():
+    agent = QLearningAgent("cop", alpha=0.1, gamma=0.9, epsilon=0.0, epsilon_decay=1.0)
+    board_a = Board((5, 5), max_barriers=0)
+    board_a.set_start_positions(cop_pos=(0, 0), thief_pos=(4, 4))
+    board_b = Board((5, 5), max_barriers=0)
+    board_b.set_start_positions(cop_pos=(0, 0), thief_pos=(0, 4))
+    # Same own position, both opponents out of radius — same bucket, so a
+    # Q-value learned in one of these states actually transfers to the other.
+    assert agent.state_for(board_a, visibility_radius=1) == agent.state_for(board_b, visibility_radius=1)
 
 
 def test_legal_actions_includes_barrier_only_for_cop_with_barriers_remaining():

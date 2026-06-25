@@ -10,7 +10,7 @@ distance logic so it can plug into either turn loop already in the repo:
     pattern (src/agents/orchestrator.py), best move first.
 """
 
-from src.engine.board import DIRECTIONS
+from src.engine.board import DIRECTIONS, UNKNOWN_POSITION
 
 Action = dict
 Position = tuple[int, int]
@@ -26,12 +26,23 @@ def _positions(board, agent: str) -> tuple[Position, Position]:
     return own, opponent
 
 
-def _ranked_directions(board, agent: str) -> list[str]:
+def _ranked_directions(board, agent: str, rng=None) -> list[str]:
     """Legal directions from this agent's own cell, ordered best-first:
     closest-to-opponent for the Cop, farthest-from-opponent for the Thief.
+
+    If the opponent's position is `UNKNOWN_POSITION` (no belief estimate —
+    see `src.agents.belief.make_belief_board`), distance-to-opponent is
+    meaningless, so this returns the legal directions in a random order
+    instead (via `rng`, when given) rather than ranking against a fake
+    off-board point.
     """
     own, opponent = _positions(board, agent)
-    legal = board.legal_moves(own)
+    legal = list(board.legal_moves(own))
+    if opponent == UNKNOWN_POSITION:
+        if rng is not None:
+            rng.shuffle(legal)
+        return legal
+
     maximize = agent == "thief"
 
     def resulting_distance(direction: str) -> int:
@@ -46,11 +57,16 @@ def _wants_barrier(board, agent: str, barriers_remaining: int) -> bool:
     """Cop-only: barricade its own cell when adjacent to the Thief but not
     capturing this turn. Board.place_barrier() barricades the Cop's
     *current* cell, not a target cell, so this denies that cell as an
-    escape route once the Cop steps off it next turn.
+    escape route once the Cop steps off it next turn. Never barricades on
+    an unknown opponent position — adjacency can't be judged without a
+    real estimate, and guessing would risk wasting one of the Cop's
+    limited barrier placements.
     """
     if agent != "cop" or barriers_remaining <= 0:
         return False
     own, opponent = _positions(board, agent)
+    if opponent == UNKNOWN_POSITION:
+        return False
     return manhattan_distance(own, opponent) == 1
 
 
@@ -74,7 +90,7 @@ def heuristic_candidate_actions(agent: str, board, barriers_remaining: int, rng)
     rejects the top pick for a reason the heuristic can't foresee (e.g. a
     barrier placed between when this list was built and when it's tried).
     """
-    ranked = _ranked_directions(board, agent)
+    ranked = _ranked_directions(board, agent, rng=rng)
     remaining = [d for d in DIRECTIONS if d not in ranked]
     rng.shuffle(remaining)
     actions = [{"type": "move", "direction": d} for d in ranked + remaining]

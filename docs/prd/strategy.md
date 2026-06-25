@@ -75,36 +75,71 @@ logic — it only consumes a belief state and returns an action.
   engine directly, not through MCP — thousands of training episodes over
   real tool calls would be far slower for no benefit, since training has
   nothing to do with the inter-agent NL channel). State = `(own_pos,
-  opponent_pos)` string key; action = one of the 8 directions, plus
-  `PLACE_BARRIER` for the Cop. Reward = per-step Δ-Manhattan-distance
-  toward the agent's goal, ±50 terminal bonus on capture. Q-tables persist
-  to `results/q_tables/{cop,thief}_qtable.json`; `src/strategy/policy.py`
-  selects between heuristic and Q-learning per `config.yaml:
-  strategy.algorithm`, exposing both the `Policy` and candidate-list
-  interfaces so either turn loop can use either algorithm without code
-  changes elsewhere.
-- **Calibration record** (trained 2026-06-23, 4000 episodes, 5×5 grid,
-  `config.yaml` defaults: α=0.1, γ=0.9, ε₀=0.2, ε-decay=0.995, floor=0.01):
-  ε decayed to its 0.01 floor by ~episode 900; rolling (window=100)
-  Cop win-rate rose from 0.74 at episode 50 to 1.0 by episode ~1300 and
-  held there through episode 4000 — clean, monotonic convergence, no
-  oscillation or instability at any point. α=0.1 (gentle, stable updates;
-  the state space here is small enough — ≤625 `(own, opponent)` pairs per
-  grid size — that a higher α wasn't needed to converge fast) and γ=0.9
-  (heavily weight the terminal capture/evade outcome over short-term
-  positional drift, since the per-step Δ-distance shaping is already doing
-  the short-term work) were kept at the config defaults because the first
-  run converged cleanly; no retuning was needed. Raw curve:
-  `results/q_tables/learning_curve.json`.
-- **Cop dominance is consistent with the Phase 2 random-policy sanity
-  progression** (also Cop-favored on 5×5, 5/6 wins), not a Q-learning
-  artifact: on an unbounded-visibility 5×5 grid the Cop's pure
-  distance-closing pressure (now reinforced, not random) out-paces a
-  Thief whose only lever is also distance — there's no information
-  asymmetry yet to favor evasion. This is expected to shift materially in
-  Phase 4 once partial observability (`observation.visibility_radius`) and
-  NL-channel bluffing give the Thief real tools the Cop can't see through
-  by definition. Worth re-measuring once Phase 4 lands, not before.
+  opponent_pos)` string key, where `opponent_pos` collapses to one shared
+  `"?"` bucket whenever the opponent is out of `visibility_radius` —
+  during training, checked against the true board (no NL channel
+  simulated); at inference, against the `UNKNOWN_POSITION` sentinel
+  already on the belief-board proxy (`src.agents.belief.make_belief_board`)
+  whenever there's no usable estimate. Action = one of the 8 directions,
+  plus `PLACE_BARRIER` for the Cop. Reward = per-step Δ-Manhattan-distance
+  toward the agent's goal (computed from the *true* positions, even when
+  filed under the "unknown" state bucket), ±50 terminal bonus on capture.
+  Q-tables persist to `results/q_tables/{cop,thief}_qtable.json`;
+  `src/strategy/policy.py` selects between heuristic and Q-learning per
+  `config.yaml: strategy.algorithm`, exposing both the `Policy` and
+  candidate-list interfaces so either turn loop can use either algorithm
+  without code changes elsewhere.
+- **Calibration record, partial-observability retrain (2026-06-25, the
+  current default — supersedes the full-visibility-only run below)**:
+  4000 episodes, 5×5 grid, `config.yaml` defaults (α=0.1, γ=0.9, ε₀=0.2,
+  ε-decay=0.995, floor=0.01, `observation.visibility_radius=2`). Rolling
+  (window=100) Cop win-rate does **not** converge cleanly the way the
+  full-visibility run did — it oscillates noisily between roughly 0.23
+  and 0.69 across the full run, ending at 0.38 (episode 4000), with no
+  stable plateau at any point after epsilon reaches its floor (~episode
+  600). This is a real, reproducible finding, not a bug: once both
+  agents' opponent-position observation collapses to a single shared
+  `"?"` state whenever out of radius, that bucket aggregates many
+  genuinely different true game situations under one Q-value per action —
+  a fundamentally non-stationary target for a tabular learner, since the
+  "right" action when truly blind legitimately varies turn to turn. The
+  table still learns useful values for the *in-radius* states (those
+  behave like the old full-visibility case), it just can't converge on a
+  single best policy for the "unknown" bucket the way it could when there
+  was no such bucket at all. Raw curve:
+  `results/q_tables/learning_curve.json`; figure: `figures/learning_curve.png`.
+  No retuning attempted — the oscillation is a property of the state
+  representation under partial observability, not the hyperparameters; a
+  higher α/lower γ wouldn't fix a fundamentally non-stationary bucket.
+- **Calibration record, original full-visibility-only run (2026-06-23,
+  superseded above, kept here for comparison)**: same 4000 episodes/5×5
+  grid/hyperparameters, but with no visibility-radius mechanic at all
+  (every state saw the exact true opponent position). ε decayed to its
+  0.01 floor by ~episode 900; Cop win-rate rose from 0.74 at episode 50 to
+  a clean, monotonic 1.0 by episode ~1300, held through episode 4000, no
+  oscillation. Reproduced exactly via `scripts/train_q_learning.py
+  --full-visibility`; archived at
+  `results/q_tables/learning_curve_full_visibility_baseline.json`.
+- **What this means for the report's skill-ceiling discussion:** the
+  original full-visibility result was solving an easier problem than the
+  one actually graded (see `reports/technical_report.md` §8, which flagged
+  exactly this gap). The partial-observability retrain is what's now
+  actually relevant to the real game — and the headline finding is that
+  full Cop dominance was *entirely an artifact of full visibility*: once
+  the same Manhattan-distance-driven reward signal has to operate through
+  the same "unknown" bucket the real game's belief system produces, the
+  Cop's structural advantage (capture is an easier target than survival)
+  is no longer enough to guarantee a clean win — consistent with the real
+  LLM-driven run's own reversal (Thief winning 3 of 6 sub-games, §4 of the
+  technical report), just reached here via a completely different
+  mechanism (training-time state-space limitation vs. a real LLM's NL
+  bluffing).
+- **Cop dominance under full visibility is consistent with the Phase 2
+  random-policy sanity progression** (also Cop-favored on 5×5, 5/6 wins):
+  with no information asymmetry, the Cop's pure distance-closing pressure
+  out-paces a Thief whose only lever is also distance, since capture
+  (exact match) is an easier target than survival (never match, ever).
+  That asymmetry is exactly what partial observability erodes, per above.
 - **Originality / uniqueness note** — this Manhattan-distance heuristic and
   this specific Q-learning state/action/reward design are this project's
   own, written without reference to any other group's implementation. The

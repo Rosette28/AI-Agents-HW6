@@ -10,7 +10,7 @@ as an explicit, valid outcome (docs/prd/nl-dialogue.md).
 
 from dataclasses import dataclass
 
-from src.engine.board import Board
+from src.engine.board import UNKNOWN_POSITION, Board
 
 Position = tuple[int, int]
 
@@ -103,34 +103,31 @@ def update_belief(agent: str, opponent_message: dict | None,
     return Belief(estimate=estimate, confidence=confidence, note=note)
 
 
-def make_belief_board(true_board: Board, agent: str, belief: Belief, rng=None) -> Board:
+def make_belief_board(true_board: Board, agent: str, belief: Belief) -> Board:
     """Build a proxy `Board` for the existing strategy modules: own position
     and barriers are real (always known to oneself), the opponent's position
     is the believed estimate rather than the true one.
 
-    With no estimate yet, falls back to a "no information" guess rather
-    than leaking the true position. If `rng` is given, that guess is a
-    fresh random cell each call — re-rolled every turn there's no real
-    signal, so a distance-maximizing/minimizing strategy reading this board
-    doesn't lock onto one fixed point. (A *fixed* fallback, e.g. always the
-    grid center, makes a "maximize distance from the fallback" strategy
-    degenerate into oscillating between the same one or two farthest cells
-    every time — a predictable pattern an opponent could learn to exploit.)
-    Without `rng` (e.g. callers that don't have one), keeps the original
-    deterministic grid-center fallback.
+    With no estimate yet, the opponent's position is set to
+    `UNKNOWN_POSITION` — a reserved off-board sentinel, not a real cell.
+    This used to default to the grid center, which made a "maximize
+    distance from the opponent" strategy degenerate into oscillating
+    between the same one or two farthest-from-center cells every time —
+    predictable enough for an opponent to learn and exploit. The sentinel
+    instead gives the strategy modules an explicit, unambiguous "I don't
+    know" signal they each handle on their own terms (heuristic: pick a
+    random legal direction instead of computing a meaningless distance to
+    an off-board point; Q-learning: collapse to one shared "unknown"
+    state-table bucket, the same one used in training — see
+    `src.strategy.q_learning`), rather than silently treating a fake
+    coordinate as real positional information.
     """
     proxy = Board((true_board.rows, true_board.cols), true_board.max_barriers)
     proxy.barriers = true_board.barriers
     proxy.barriers_placed = true_board.barriers_placed
 
     own_pos = true_board.cop_pos if agent == "cop" else true_board.thief_pos
-
-    if belief.estimate is not None:
-        opponent_pos = belief.estimate
-    elif rng is not None:
-        opponent_pos = (rng.randrange(true_board.rows), rng.randrange(true_board.cols))
-    else:
-        opponent_pos = (true_board.rows // 2, true_board.cols // 2)
+    opponent_pos = belief.estimate if belief.estimate is not None else UNKNOWN_POSITION
 
     if agent == "cop":
         proxy.cop_pos, proxy.thief_pos = own_pos, opponent_pos

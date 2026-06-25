@@ -2,24 +2,36 @@ Sub-game 4 on a 5x5 grid — winner: cop
 
 --- Turn 1: THIEF ---
 Belief: no reliable information from message or observation (confidence: none)
-Message: I'm heading southeast toward the industrial district—lots of cover there.
-Action: {'type': 'move', 'direction': 'N'}
-Result: {'accepted': True, 'new_position': [0, 4], 'moves_remaining': 24}
+Message: I'm heading toward the western side of the grid.
+Action: {'type': 'move', 'direction': 'SW'}
+Result: {'accepted': True, 'new_position': [2, 1], 'moves_remaining': 24}
 
 --- Turn 2: COP ---
-Belief: direct observation within visibility radius (confidence: high)
-Message: I can see you clearly, so no need for games - I'm moving east toward you.
-Action: {'type': 'move', 'direction': 'E'}
-Result: {'accepted': True, 'new_position': [0, 3], 'moves_remaining': 24, 'barriers_remaining': 5}
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading south to explore that direction.
+Action: {'type': 'move', 'direction': 'S'}
+Result: {'accepted': True, 'new_position': [4, 4], 'moves_remaining': 24, 'barriers_remaining': 5}
 
 --- Turn 3: THIEF ---
-Belief: direct observation within visibility radius (confidence: high)
-Message: I'm heading north to the industrial district!
-Action: {'type': 'move', 'direction': 'S'}
-Result: {'accepted': True, 'new_position': [1, 4], 'moves_remaining': 23}
+Belief: no reliable information from message or observation (confidence: none)
+Message: "I'm feeling cornered in the middle somewhere, might head toward the edges soon."
+Action: {'type': 'move', 'direction': 'N'}
+Result: {'accepted': True, 'new_position': [1, 1], 'moves_remaining': 23}
 
 --- Turn 4: COP ---
-Belief: direct observation within visibility radius (confidence: high)
-Message: "I'm moving southeast—I can see you clearly from here."
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm moving northwest this turn - stay sharp if you're nearby!
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [3, 3], 'moves_remaining': 23, 'barriers_remaining': 5}
+
+--- Turn 5: THIEF ---
+Belief: no reliable information from message or observation (confidence: none)
+Message: I'm heading northwest toward the industrial district—plenty of shadows to lose myself in there.
 Action: {'type': 'move', 'direction': 'SE'}
-Result: {'accepted': True, 'new_position': [1, 4], 'moves_remaining': 23, 'barriers_remaining': 5}
+Result: {'accepted': True, 'new_position': [2, 2], 'moves_remaining': 22}
+
+--- Turn 6: COP ---
+Belief: direct observation within visibility radius (confidence: high)
+Message: I can see you clearly. I'm moving northwest now.
+Action: {'type': 'move', 'direction': 'NW'}
+Result: {'accepted': True, 'new_position': [2, 2], 'moves_remaining': 22, 'barriers_remaining': 5}

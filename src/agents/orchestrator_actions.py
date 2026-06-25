@@ -67,7 +67,7 @@ async def act(client: Client, true_board: Board, agent: str, barriers_remaining:
         belief = update_belief(agent, opponent_message, direct_observation, llm_client,
                                 previous_belief=previous_belief, moves_elapsed=1)
         beliefs[agent] = belief
-        board_for_policy = make_belief_board(true_board, agent, belief, rng=rng)
+        board_for_policy = make_belief_board(true_board, agent, belief)
 
     for action in policy_fn(agent, board_for_policy, barriers_remaining, rng):
         result = await client.call_tool("choose_action", {"action": action})
