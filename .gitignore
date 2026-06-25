@@ -16,6 +16,7 @@ env/
 # Secrets / credentials
 .env
 *.env
+secrets/
 client_secret*.json
 token.json
 credentials.json

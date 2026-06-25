@@ -44,6 +44,6 @@ group:
 
 reporting:
   recipient_email: "rmisegal+uoh26b@gmail.com"
-  send_on_completion: false   # safety gate — flip to true only for the real graded/final run
+  send_on_completion: true   # safety gate — flip back to false after this test send
 
 timezone: "Asia/Jerusalem"

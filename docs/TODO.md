@@ -599,48 +599,67 @@ This is the heart of the assignment — treat it accordingly.
 
 ## Phase 6 — Dec-POMDP Modeling, README & Technical Report
 
-- [ ] **Formally define the Dec-POMDP tuple for this specific
+- [x] **Formally define the Dec-POMDP tuple for this specific
   implementation**
   - Priority: High
-  - Status: not started
-  - Definition of done: every symbol in `⟨n, S, {Ai}, P, R, {Ωi}, O, γ⟩` is
-    mapped to this project's actual state representation, action set, and
-    reward table — not a copy of the generic textbook definition.
+  - Status: done — `reports/technical_report.md` §2; every symbol mapped to
+    real code (`Board`, `observe_opponent`, `belief.py`, `config.yaml`
+    scoring/gamma), including an explicit note on where this project's
+    two-channel observation function (exact-but-rare visibility radius vs.
+    always-available-but-adversarial NL) departs from the textbook
+    single-channel `O`.
+  - Definition of done: confirmed.
 
-- [ ] **Write the orchestration-challenge analysis**
+- [x] **Write the orchestration-challenge analysis**
   - Priority: High
-  - Status: not started
-  - Definition of done: a concrete discussion of the real difficulties hit
-    while managing free natural-language communication with no fixed
-    protocol, how linguistic ambiguity was handled, and what was done to
-    ensure mutual understanding between agents.
+  - Status: done — `reports/technical_report.md` §3, three concrete
+    difficulties pulled from the real transcripts (bluffing
+    indistinguishable from model error at the text level, vagueness as a
+    first-class non-error outcome, belief-default behavior visibly shaping
+    physical movement), each with a transcript quote, not a generic
+    discussion.
+  - Definition of done: confirmed.
 
-- [ ] **Write the deep-dive technical report under `reports/`**
+- [x] **Write the deep-dive technical report under `reports/`**
   - Priority: High
-  - Status: not started
-  - Definition of done: covers architecture, the Dec-POMDP model, results
-    across all sanity-check grid sizes, learning curves (if applicable),
-    GUI screenshots, and cloud logs proving 6 autonomous natural-language
-    sub-games.
+  - Status: mostly done — `reports/technical_report.md` covers
+    architecture, the Dec-POMDP model, results across the full sanity-check
+    progression (random policy → heuristic/Q-learning → real LLM run), and
+    the learning curve. Two pieces explicitly deferred and flagged in the
+    report itself (§6, §7), not silently skipped: a real GUI screenshot
+    (needs a live run with a display, which this session doesn't have) and
+    cloud logs proving public-HTTPS reachability (blocked on the Phase 5
+    cloud-deployment items below, currently in progress in parallel).
+  - Definition of done: confirmed for everything not dependent on Phase 5;
+    revisit §6/§7 once the GUI screenshot and cloud reachability evidence
+    exist.
 
-- [ ] **Finalize `README.md` for an external reader**
+- [x] **Finalize `README.md` for an external reader**
   - Priority: High
-  - Status: not started
-  - Definition of done: installation instructions, usage instructions
-    (local run / cloud run / bonus inter-group run), examples and demos,
-    a configuration guide, code contribution guidelines, and license/
-    attribution are all present, with graphs/tables/screenshots embedded
-    and setup/run instructions that are genuinely copy-pasteable.
+  - Status: done — installation, local-run usage, cloud-run usage (with an
+    explicit status note that reachability/Gmail OAuth confirmation is
+    still pending, per Phase 5), offline Q-learning training, a
+    configuration-guide table mapping every `config.yaml` section, a tests
+    section, and contribution guidelines all present; setup/run commands
+    are copy-pasteable.
+  - Definition of done: confirmed, modulo embedding the still-pending GUI
+    screenshot once captured.
 
 - [ ] **Explicitly answer the four required questions somewhere in the
   report**
   - Priority: High
-  - Status: not started
-  - Definition of done: how free-language orchestration differs from a
-    rigid protocol; how partial observability shaped the belief-update
-    logic; where the strategy's "skill ceiling" showed up; what the cloud
-    deployment's security trade-offs were — each answered concretely, with
-    evidence from this project's own runs.
+  - Status: in progress — three of four fully answered, one partially — all in
+    `reports/technical_report.md` §8. The free-NL-vs-rigid-protocol,
+    partial-observability, and skill-ceiling questions are answered with
+    concrete evidence from the real run. The cloud-security-trade-offs
+    question is answered for what's implemented (token auth + no-restart
+    revocation design) but explicitly notes that the broader cloud
+    security picture (firewall posture, TLS specifics, reachability
+    evidence) is still pending Phase 5 confirmation — not overstated as
+    done.
+  - Definition of done: revisit the fourth question once Phase 5's cloud
+    deployment is confirmed reachable; the other three need no further
+    work.
 
 ---
 
@@ -1041,3 +1060,36 @@ here in case that changes.
     shapes were preserved exactly, which is exactly the point of keeping
     this an internal refactor. 97 tests total project-wide, all passing,
     89% coverage (target ≥85%).
+- 2026-06-25: Phase 6 done as far as possible without Phase 5 finished, per
+  explicit user request (cloud deployment to Render + Gmail API are being
+  set up in parallel, outside this session). Verified current state first:
+  re-ran the full suite (99 tests passing, 89% coverage — a couple of tests
+  had crept in since the 97/89% note above, no regressions) and confirmed
+  `config/config.yaml` already has real Render URLs for both MCP servers,
+  though reachability and the Gmail OAuth send are not yet confirmed from
+  this session. New `reports/technical_report.md`: architecture summary,
+  the Dec-POMDP tuple mapped to real code (§2, including an explicit note
+  on the two-channel observation function — exact-but-rare visibility
+  radius vs. always-on-but-adversarial NL — departing from the textbook
+  single-channel `O`), the orchestration-challenge analysis (§3, three
+  concrete transcript-backed difficulties: bluffing vs. model-error
+  indistinguishability, vagueness as a first-class non-error outcome, and
+  the belief-default-position causing visible oscillating Thief movement),
+  the full sanity-check-progression results table (§4: random policy →
+  heuristic/Q-learning → the real LLM run's 75/45 Cop/Thief reversal), the
+  learning curve (§5), and answers to 3 of the 4 required questions in
+  full plus the 4th (cloud security trade-offs) answered for what's
+  implemented (token auth + no-restart revocation) while explicitly
+  flagging the broader cloud-security picture as pending Phase 5
+  confirmation rather than overstating it. Two things in the report are
+  deliberately left as open slots rather than faked: a real GUI screenshot
+  (§6, needs a live run with a display — this session has none) and cloud
+  reachability logs (§7, blocked on Phase 5). `README.md` rewritten from
+  its Phase-0 placeholder into a full external-reader doc: install steps,
+  local-run usage, cloud-run usage (with an explicit pending-confirmation
+  note, not a claim that it's live), offline Q-learning training, a
+  config-guide table, a tests section, and contribution guidelines.
+  Deliberately did **not** touch `docs/ARCHITECTURE.md`'s URL placeholders
+  or fill in `config.yaml: group.*` — those are Phase 5 tasks the user is
+  already handling, and doing them here risked stepping on work in
+  progress elsewhere.
