@@ -223,6 +223,39 @@ in `tests/` before the reporting module ships.
   If grading feedback ever says otherwise, this is the one place to
   revert (`_SUB_GAME_SUMMARY_FIELDS` in `game_report.py`).
 
+### ADR-8: Phase 7 bonus — each group runs its own peer process, not one shared orchestrator
+
+- **Decision:** for the inter-group bonus, **both groups run their own
+  copy of `scripts/run_bonus_series.py` simultaneously**, each deciding
+  only its own agent's moves (own strategy, own LLM) and submitting them
+  only to its own server. The two independent processes synchronize via
+  tools every compliant server already exposes — `report_location` (learn
+  the opponent's true position, for capture/visibility purposes — the
+  scoring/coordination layer, not a leak into the NL channel) and the
+  existing message relay (a new message arriving is the "opponent has
+  moved" signal). No new tools were needed.
+- **History:** the first implementation had one side's orchestrator
+  decide *both* agents' moves, submitting to whichever server — ours or
+  the partner's — happened to own that role each turn. That technically
+  ran, but it never exercised the partner group's own strategy/LLM at
+  all; their server was reduced to a passive validator. Caught during
+  review, before being sent to any real partner.
+- **Rationale:** the whole point of an inter-group competition is each
+  side's own agent against the other's. Confirmed working via
+  `tests/agents/test_bonus_peer.py`, which runs both sides of a
+  sub-game/half concurrently in-process (no real network) and asserts
+  they independently arrive at the same winner/totals — proving the
+  "both sides observe the same shared reality" property without either
+  one telling the other anything.
+- **Trade-off:** requires both groups to agree several values exactly
+  ahead of time (a shared `--series-seed` so both independently derive
+  identical starting positions per sub-game without coordination; mirror
+  `--our-role-half1` values; the same `bonus.max_draw_retries`) — and
+  depends on the partner's deployed server exposing the same tool names
+  (`report_location`, `receive_message`, `sync_barriers`, `choose_action`,
+  `start_subgame`) with matching signatures, which can't be verified
+  without an actual partner to test against.
+
 ## Bonus partnership (if pursued)
 
 To be filled in once a partner group is locked in: which code/architecture

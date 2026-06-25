@@ -25,7 +25,7 @@ See `docs/PLAN.md` for the annotated structure. In short:
 - `src/` — engine, MCP servers, agent orchestrators, strategy, GUI, reporting
 - `config/config.yaml` — every tunable parameter (grid size, scoring, etc.)
 - `docs/` — planning and design docs (PRD, PLAN, TODO, CONCEPTS, API, PROMPTS)
-- `tests/` — unit tests (target ≥85% coverage; currently 91%)
+- `tests/` — unit tests (target ≥85% coverage; currently 92%)
 - `scripts/` — entrypoints (run servers, run the LLM demo, train Q-learning,
   plot the learning curve, check cloud reachability)
 - `results/`, `figures/`, `reports/` — run outputs, generated graphs, the
@@ -217,6 +217,13 @@ against the live, independently-deployed Cop and Thief servers — not a
 local/simulated stand-in. Full transcripts for every sub-game referenced
 above are committed under `results/transcripts/`.
 
+**Token usage and cost**: see `reports/technical_report.md` §9 for the
+per-call token ceilings, the estimated tokens/cost per series, and the
+optimization notes actually applied (small `max_tokens` ceilings, an
+explicit 30s client timeout, two calls/turn kept separate rather than
+merged) — estimated at well under $1/series and ~$1–3 for the whole
+assignment's run history (Haiku pricing).
+
 ## Configuration guide
 
 Everything tunable lives in `config/config.yaml` — nothing in `src/` should
@@ -242,7 +249,7 @@ hardcode a value that belongs here:
 pytest --cov=src --cov-report=term-missing
 ```
 
-111 tests, 91% project-wide coverage at last check (target ≥85%).
+133 tests, 92% project-wide coverage at last check (target ≥85%).
 
 ## Contributing
 

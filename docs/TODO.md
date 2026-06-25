@@ -668,80 +668,115 @@ This is the heart of the assignment — treat it accordingly.
 
 ## Phase 7 — Bonus: Inter-Group Cloud Competition
 
-Currently deferred — not being pursued right now. Leaving the breakdown
-here in case that changes.
+Currently deferred — no partner group identified, not being actively
+pursued. Code scaffolding now exists and is tested (2026-06-25, see notes
+log) so this is ready to use the moment a partner group shows up; the
+checklist below stays unstarted/deferred until that happens, since none
+of it can actually be exercised against a real second deployment yet.
 
 - [ ] **Confirm the partner group's MCP server URLs and finalize the
   Inter-Group Bonus Game JSON schema together**
   - Priority: Low
-  - Status: deferred
+  - Status: deferred — schema side is already built and tested
+    (`src/reporting/bonus_schema.py`, matches hw06_requirements.md §11.2
+    exactly); what's missing is an actual partner group to confirm it
+    with.
 
 - [ ] **Play a full two-sided game — 6 sub-games (3 + 3, roles swapped)**
   - Priority: Low
-  - Status: deferred
+  - Status: deferred — `scripts/run_bonus_series.py` runs exactly this,
+    but as a **peer protocol both groups run simultaneously**
+    (`src.agents.bonus_peer*`), each deciding only its own agent's moves
+    — not one side driving both, which was the original (corrected)
+    design; see `docs/prd/bonus-inter-group.md`'s "Architecture" section.
+    Blocked on having a partner group's real URLs/tokens to point it at.
 
 - [ ] **Capture full natural-language logs proving autonomy**
   - Priority: Low
-  - Status: deferred
+  - Status: deferred — each side's own peer process logs its own
+    transcript per sub-game the same way the base game does; nothing
+    extra to build, just needs a real cross-group run to produce them.
 
 - [ ] **Both groups independently send emails with exactly matching
   results**
   - Priority: Low
-  - Status: deferred
+  - Status: deferred — see `docs/prd/bonus-inter-group.md`'s "Algorithm /
+    process" for the concrete coordination model: both sides now run the
+    full script themselves and independently arrive at the same result
+    (proven in-process by `tests/agents/test_bonus_peer.py`), then compare
+    before either sends. `scripts/send_bonus_report.py` remains as a
+    fallback for a side sending an already-agreed payload it didn't
+    generate itself.
   - Definition of done (if revisited): results cross-checked between
     groups *before* either side sends anything — a mismatch disqualifies
     both groups for that series.
 
 - [ ] **Compute and record the bonus score**
   - Priority: Low
-  - Status: deferred
+  - Status: deferred — `src/reporting/bonus_scoring.py` implements the
+    10/7/5 rule and multi-partner averaging already, tested
+    (`tests/reporting/test_bonus_scoring.py`); just needs a real result to
+    compute from.
 
 ---
 
 ## Phase 8 — Final QA & Submission
 
-- [ ] **Final QA gate against the §20.9 checklist**
+- [x] **Final QA gate against the §20.9 checklist**
   - Priority: High
-  - Status: not started
-  - Definition of done — each of the following confirmed individually:
-    - Docs: PRD, architecture doc, README, API doc (MCP tool contracts),
-      prompt book (`PROMPTS.md`) all present and accurate.
-    - Code: modular structure, files ≤150 lines, comments + docstrings,
-      consistent style.
-    - Config: separated config files, `.env.example`, no secrets,
-      `.gitignore` correct.
-    - Testing: ≥85% coverage, edge cases, error handling, automated
-      reports all covered.
-    - Research: parameter exploration (grid size, hyperparameters),
-      sensitivity analysis, an analysis notebook/script, graphs.
-    - Visualization: quality graphs (learning curves), screenshots,
-      architecture diagrams.
-    - Costs: a token-usage table for LLM calls, with a short analysis and
-      any optimization notes.
-    - Extension: clearly marked extension points, extra examples, clean
-      interfaces, if anything beyond spec was added.
-    - General: clean git history, license, attribution, deployment notes.
+  - Status: done — verified individually:
+    - Docs: PRD, `ARCHITECTURE.md`, README, `API.md`, `PROMPTS.md` all
+      present and accurate against the current code.
+    - Code: modular, every `src/`/`scripts/` file ≤150 lines (largest is
+      `scripts/run_bonus_series.py` at 142), every module has a docstring,
+      consistent style throughout.
+    - Config: `config/config.yaml` + `.env.example` separated, no secrets
+      tracked (`git ls-files` clean, `git log --all -- .env secrets/
+      '*token.json' '*client_secret*.json'` empty), `.gitignore` covers
+      `.env`, `secrets/`, token/credential files, and runtime artifacts.
+    - Testing: 133 tests passing, 92% coverage (target ≥85%); edge cases
+      (technical-loss retry, draw retry, revocation, schema corruption)
+      and error handling all have dedicated tests.
+    - Research: grid-size sanity progression (Phase 2), Q-learning
+      hyperparameter calibration (`docs/prd/strategy.md`), and the
+      full-vs-partial-observability Q-learning comparison (ADR-6) all
+      recorded with reasoning, not just results.
+    - Visualization: `figures/learning_curve.png`, `figures/
+      gui_screenshot.png`, C4 + sequence diagrams in `docs/PLAN.md`, all
+      embedded in README/technical report.
+    - Costs: added `reports/technical_report.md` §9 — a token-usage table
+      grounded in real on-disk transcripts and configured `max_tokens`
+      ceilings (this project never instrumented per-call `usage` counters,
+      so it's an honest grounded estimate, flagged as such, not a literal
+      billing export), plus the optimization notes actually applied.
+    - Extension: Phase 7 bonus scaffolding is explicitly marked
+      not-mandatory in every file's docstring; ADR-6's sentinel design and
+      ADR-7/8 are documented extension-point decisions.
+    - General: license attribution filled in (was a placeholder "Team"),
+      deployment notes in `docs/ARCHITECTURE.md`; git history scrubbed
+      (see below).
 
-- [ ] **Cross-check code quality specifically**
+- [x] **Cross-check code quality specifically**
   - Priority: High
-  - Status: not started
-  - Definition of done: clear separation of responsibilities; comments
-    explain *why*, not just *what*; docstrings on every function/class/
-    module; descriptive names; short single-responsibility functions;
-    no duplicated logic (DRY).
+  - Status: done — every `src/` module has a docstring (verified by
+    script, zero misses); no file exceeds 150 lines; the Phase 7 bonus
+    modules (newest, least-reviewed code) spot-checked individually and
+    each carries a docstring explaining its role and why it was split out.
+    No new DRY violations found.
 
-- [ ] **Cross-check the repo structure matches the target layout**
+- [x] **Cross-check the repo structure matches the target layout**
   - Priority: High
-  - Status: not started
-  - Definition of done: `src/`, `tests/`, `docs/`, `data/`, `results/`,
-    `config/`, `figures/` cleanly separated by role, matching
-    `docs/PLAN.md`.
+  - Status: done — `src/`, `tests/`, `docs/`, `data/`, `results/`,
+    `config/`, `figures/`, `reports/`, `scripts/` all present and cleanly
+    separated by role, matching `docs/PLAN.md`.
 
-- [ ] **Scrub all API keys / OAuth secrets from git history**
+- [x] **Scrub all API keys / OAuth secrets from git history**
   - Priority: High
-  - Status: not started
-  - Definition of done: a fresh clone of the repo contains zero live
-    secrets, anywhere in history, not just in the current working tree.
+  - Status: done — confirmed via `git log --all --full-history -- .env
+    secrets/ '*token.json' '*client_secret*.json'` (empty — never tracked,
+    ever) and `git grep` for Anthropic/Google API-key shaped strings
+    across all tracked files (no matches). `secrets/`, `.env`, and
+    `bonus_partner_notes*.md` are gitignored and untracked.
 
 - [ ] **Submit via the standard submission space**
   - Priority: High
@@ -1221,3 +1256,148 @@ here in case that changes.
   required questions, qualitative transcript review) and is now described
   as supplementary in the README, not as the only place this content
   exists. All 111 tests still passing (docs-only change).
+- 2026-06-25: Phase 7 bonus **code scaffolding** added, per explicit user
+  request, while clarifying the coordination model first (the user's own
+  proposed model — one side runs the live series, both sides email the
+  same shared result — is correct, and is in fact the *only* workable
+  one, since real LLM calls make two independent live runs of the same
+  matchup non-reproducible). Nothing in Phases 0-6 was touched. New:
+  `src/reporting/bonus_schema.py` (validates the §11.2 Inter-Group Bonus
+  Game JSON shape — `report_type`, `groups`, both repos/URLs, both
+  students lists, `totals_by_group`/`bonus_claim` keyed by team name with
+  keys checked against `groups`' values, `mutual_agreement`),
+  `bonus_report.py` (`build_bonus_game_json` merges two swapped-role
+  `run_series_via_mcp` halves into one payload, correctly rolling each
+  half's cop/thief points up to *team* names rather than roles, since the
+  cop/thief-to-team mapping flips between halves; reuses
+  `game_report.summarize_sub_game`, promoted from a private helper since
+  it's now shared across two reporting modules — same compact-sub_games
+  reasoning as ADR-7, both modules trim transcripts the same way),
+  `bonus_scoring.py` (`compute_bonus_claim`: win=10/lose=7/tie=5;
+  `average_bonus_score`: mean across valid series for multi-partner
+  play). `scripts/run_bonus_series.py` is the CLI entrypoint — runs both
+  halves via the existing `run_series_via_mcp` (no new orchestration
+  logic needed, confirming the architecture already generalizes to this),
+  builds/validates the payload, prints it for sharing with the partner
+  group, and only emails our own copy if both `--send` and a new
+  `config.yaml: bonus.send_on_completion` safety gate are set — mirrors
+  the existing `reporting.send_on_completion` pattern, kept as a
+  *separate* gate since the bonus email is independent of the mandatory
+  one. `config.yaml` gained a `bonus.sub_games_per_half: 3` section
+  (structural, not a secret — partner URLs/tokens are deliberately CLI
+  arguments instead, never written to config or committed, since no
+  partner exists yet and they're per-competition data). `gmail_sender
+  .send_report` gained an optional `subject` parameter (default unchanged)
+  so the bonus email is distinguishable from the mandatory one in an
+  inbox. 15 new tests (`tests/reporting/test_bonus_{schema,report,
+  scoring}.py`), 126 tests project-wide, 91% coverage, every file still
+  ≤150 lines (`run_bonus_series.py` is the largest new file at 139).
+  **Still blocked on an actual partner group** — `docs/prd
+  /bonus-inter-group.md` and `docs/TODO.md`'s Phase 7 checklist both stay
+  marked deferred; this is scaffolding, not a claim the bonus was
+  attempted.
+- 2026-06-25: Added exact-tie retry handling to the bonus scaffolding, per
+  explicit user request (a 5/5 tie is lose-lose for both groups, so it's
+  worth re-attempting rather than reporting). `src/reporting
+  /bonus_scoring.py` gained `is_draw(totals_by_group)`. Extracted
+  `_run_one_attempt`'s logic out of `scripts/run_bonus_series.py` into a
+  new `src/agents/bonus_runner.py` (`run_one_bonus_attempt`) — needed
+  because adding the retry loop pushed the script to 172 lines, over the
+  150-line limit; this also made the run-one-attempt logic unit-testable
+  on its own (`tests/agents/test_bonus_runner.py`, mocking
+  `run_series_via_mcp` so no real network/LLM calls happen in the test).
+  `scripts/run_bonus_series.py` now loops up to
+  `config.yaml: bonus.max_draw_retries` (default 3) calling that
+  function fresh each time, stopping early on any non-tie result. Two new
+  config flags: `bonus.max_draw_retries` and
+  `bonus.send_email_on_draw_after_max_retries` (default `false` — the
+  safer "don't send a tied result" choice; per the user, this should be
+  agreed with the partner group and set explicitly before a real run,
+  not left at the default). 130 tests project-wide, 92% coverage, every
+  file still ≤150 lines (`run_bonus_series.py` 129,
+  `bonus_runner.py` 68).
+- 2026-06-25: Closed a real gap the user caught — "share the JSON, partner
+  pastes it into an email by hand" does **not** satisfy the lecturer's
+  "each group sends automatically from the code" requirement on the
+  partner's side. Added `scripts/send_bonus_report.py`: the partner
+  group's entrypoint — loads the shared payload file, validates it
+  against `bonus_schema`, **refuses to send unless `mutual_agreement` is
+  already `true`** (manually verified: passing a `mutual_agreement:
+  false` payload raises and exits 1, doesn't silently send), and sends
+  via the caller's *own* Gmail OAuth (`GMAIL_CLIENT_SECRET_PATH`/
+  `GMAIL_TOKEN_PATH` already required for their own mandatory
+  submission — nothing from our `.env`, and nothing of theirs needed
+  beyond that). No game-playing, no MCP/LLM calls in this script at all —
+  purely "load, validate, send." Also clarified in
+  `docs/prd/bonus-inter-group.md` (new "Trust boundary, explicitly
+  minimal" note) exactly what the partner group does and doesn't need to
+  share: two revocable MCP bearer tokens, nothing else — never their LLM
+  key, never their Gmail credentials. No test added for this script,
+  matching the existing convention that thin CLI wrappers around already-
+  tested `src/` functions (`run_llm_demo.py`, `train_q_learning.py`, etc.)
+  don't get their own test file.
+- 2026-06-25: **Phase 8 (final QA gate) done** for everything codeable.
+  Full suite re-run clean (133 tests, 92% coverage). Verified: no file
+  over 150 lines (largest `scripts/run_bonus_series.py` at 142), every
+  `src/` module has a docstring (checked by script, zero misses), no
+  secrets ever entered git history (`git log --all --full-history` on
+  `.env`/`secrets/`/token/client-secret paths returns empty; `git grep`
+  for Anthropic/Google API-key-shaped strings across tracked files found
+  nothing). Found and fixed one real gap: §20.9 asks for a token-usage
+  table with cost analysis, which didn't exist anywhere — added
+  `reports/technical_report.md` §9, grounded in the real saved
+  transcripts (258 logged `Message:` lines, avg 75.6 chars) and the
+  configured `max_tokens` ceilings rather than fabricated precision,
+  since this project never instrumented per-call `usage` tracking;
+  flagged that gap explicitly in the report itself as a concrete future
+  extension point rather than papering over it. Also fixed `LICENSE`,
+  which still had a placeholder `Copyright (c) 2026 Team` — replaced with
+  the real names from `config.yaml: group.students`. Updated stale test
+  counts in README (111/91% → 133/92%). **Two Phase 8 items remain
+  genuinely not codeable, left for the user**: confirming the exact
+  submission deadline/time, and the actual submission through the
+  course's submission space — both require information/access this
+  session doesn't have.
+- 2026-06-25: **Real architectural correction to the bonus design**,
+  caught by the user before anything was sent to a partner group: the
+  previous design had one side's orchestrator decide *both* agents' moves
+  each half, submitting to whichever server owned that role. That ran
+  fine, but it never actually exercised the partner group's own
+  strategy/LLM at all — their server was just a passive validator,
+  defeating the entire point of an inter-group competition. Redesigned
+  from scratch (`docs/PLAN.md` ADR-8, `docs/prd/bonus-inter-group.md`'s
+  new "Architecture" section): **both groups now run
+  `scripts/run_bonus_series.py` simultaneously**, each deciding only its
+  own agent's moves with its own strategy/LLM. New modules, split for the
+  150-line limit (one logical unit): `src/agents/bonus_peer.py` (low-level
+  helpers — `client`, `wait_for_opponent_move` polling-based turn-sync,
+  `positions` via `report_location` on both servers, `act` — decide +
+  submit one turn), `bonus_peer_subgame.py` (one sub-game's turn loop,
+  capture-checked after every move from each side's own observation),
+  `bonus_peer_half.py` (loops `sub_games_per_half`, derives shared
+  starting positions from `str((series_seed, half_index, sub_game_index))`
+  so both sides agree without coordinating over the network — `random
+  .Random` doesn't accept tuple seeds directly, caught by a failing test).
+  `src/engine/start_positions.py:random_start_positions` gained an
+  optional `rng` param for this. `src/agents/orchestrator_series.py`'s
+  `_score_subgame` promoted to public `score_subgame` (now reused
+  cross-module) and its `from src.agents import orchestrator` moved to a
+  lazy import inside the one function that needs it — fixed a real
+  circular-import crash (`orchestrator.py` re-exports from
+  `orchestrator_series.py` at its own bottom; importing
+  `orchestrator_series` directly, as the new bonus modules do, hit the
+  cycle in the wrong order). `bonus_runner.run_one_bonus_attempt` now
+  calls `run_bonus_half_as_peer` per half instead of `run_series_via_mcp`,
+  gained a required `series_seed` param; `scripts/run_bonus_series.py`
+  gained `--series-seed` (required) and documents that **both** sides run
+  it, with matching `--our-role-half1`/`--series-seed`/
+  `bonus.max_draw_retries`. Rewrote `tests/agents/test_bonus_runner.py`
+  to mock the new boundary. New `tests/agents/test_bonus_peer.py` — the
+  key evidence: runs both sides of a sub-game/half **concurrently**
+  (`asyncio.gather`) against two real in-process MCP servers (no network),
+  asserting they independently agree on the winner/totals without either
+  one telling the other anything; a first draft of this test only drove
+  one side and hung forever waiting for a move nobody was submitting —
+  the exact bug this whole redesign exists to fix, caught immediately by
+  the test itself. 133 tests project-wide, 92% coverage, every file still
+  ≤150 lines (`run_bonus_series.py` 142, the largest).

@@ -347,12 +347,51 @@ place either lives is the local `.env`-adjacent `secrets/` directory, never
 in git history. This is now backed by real evidence — §7 — rather than a
 design-only answer.
 
-## 9. Status note
+## 9. Token usage and cost
+
+`src/agents/llm_client.py` keeps `max_tokens` deliberately small per call —
+100 for an NL message (`dialogue.py`), 150 for a belief-parse JSON response
+(`belief.py`) — and the project never instrumented per-call `response.usage`
+counters, so the numbers below are derived from what's actually on disk
+(`results/transcripts/*.txt`) plus the configured ceilings, not from an
+Anthropic billing-dashboard export.
+
+| Quantity | Value | Source |
+|---|---|---|
+| LLM calls per turn | 2 (one NL message, one belief parse on receipt) | `dialogue.py` + `belief.py` call sites |
+| Avg. generated message length | 75.6 chars (~19 tokens) across 258 logged `Message:` lines | `results/transcripts/*.txt` |
+| Configured output ceiling | 100 tokens (message) / 150 tokens (belief JSON) | `config.yaml: llm.*`, `llm_client.py` defaults |
+| Turns per 6-sub-game series (5×5) | ~120–150 (varies with survival vs. capture) | sub-game turn counts in `results/transcripts/` |
+| Estimated tokens per full series | ~100K–200K (system prompt + short history repeated per call dominates, not the short completions) | ADR-1, `docs/PLAN.md` |
+| Estimated cost per series (Haiku pricing) | well under $1 | ADR-1 |
+| Estimated cost, whole assignment (~8–12 runs: sanity stages + local + cloud + hardening reruns) | ~$1–3 | ADR-1, `docs/TODO.md` notes log |
+
+**Optimization notes actually applied:** (1) small `max_tokens` ceilings keep
+completions short on purpose — messages are meant to be one sentence, belief
+parses are meant to be one small JSON object, so there's no headroom being
+paid for and unused; (2) an explicit 30s client timeout
+(`Anthropic(..., timeout=30.0)`) avoids the SDK's 10-minute default turning
+one slow request into a wasted/stalled call that still gets billed; (3) the
+two calls per turn are the minimum the design needs — collapsing them into
+one (e.g. asking the model to produce both the belief update and the next
+message in a single call) was considered but rejected, since it would couple
+two independent failure modes (a belief-parse JSON error would then also
+lose the NL message) for a token saving too small to matter at this volume.
+
+**Honest limitation:** without per-call `usage` tracking, the table above is
+a grounded estimate, not an exact ledger — a real follow-up would be logging
+`response.usage.input_tokens`/`output_tokens` per call in `llm_client.py` and
+summing them per series, which `docs/TODO.md` should flag as a concrete
+extension point if this report's numbers are ever challenged.
+
+## 10. Status note
 
 Sections 1–5, 6, and 7–8 are complete, based on real, already-recorded
 runs (the local run, the first cloud run, and the post-strategy-hardening
 cloud run in §7b) — not projected or assumed. §7b's email-format fix is
 itself confirmed by a second real send from the same run (1,880-character
-body vs. the original tens of thousands). 111 tests passing project-wide,
-91% coverage. Nothing in this report is still pending Phase 5 work, since
-Phase 5 itself is fully closed out per `docs/TODO.md`.
+body vs. the original tens of thousands). §9's token-usage table is a
+grounded estimate from on-disk transcripts and configured ceilings, not an
+exact billing ledger — flagged explicitly there, not overstated. 133 tests
+passing project-wide, 92% coverage. Nothing in this report is still pending
+Phase 5 work, since Phase 5 itself is fully closed out per `docs/TODO.md`.

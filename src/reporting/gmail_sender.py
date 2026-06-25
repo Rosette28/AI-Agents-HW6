@@ -46,11 +46,15 @@ def send_report(
     recipient: str,
     client_secret_path: Path | str | None = None,
     token_path: Path | str | None = None,
+    subject: str = _SUBJECT,
 ) -> dict:
     """Send `payload` as the entire email body — no surrounding prose — to
     `recipient`. Caller is responsible for schema-validating `payload`
-    first (`src.reporting.schema.validate_internal_game_json`). Returns the
-    Gmail API's send response (contains the sent message id), for logging.
+    first (`src.reporting.schema.validate_internal_game_json`, or
+    `src.reporting.bonus_schema.validate_bonus_game_json` for a Phase 7
+    bonus report — pass a distinguishing `subject` in that case). Returns
+    the Gmail API's send response (contains the sent message id), for
+    logging.
     """
     client_secret_path = Path(client_secret_path or os.environ["GMAIL_CLIENT_SECRET_PATH"])
     token_path = Path(token_path or os.environ["GMAIL_TOKEN_PATH"])
@@ -60,7 +64,7 @@ def send_report(
 
     message = MIMEText(json.dumps(payload, indent=2))
     message["to"] = recipient
-    message["subject"] = _SUBJECT
+    message["subject"] = subject
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
     return service.users().messages().send(userId="me", body={"raw": raw}).execute()

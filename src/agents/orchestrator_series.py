@@ -4,17 +4,21 @@ and accumulating totals across a full series.
 
 Re-exported from `orchestrator` so `run_series_via_mcp` keeps the same
 import path; calls `orchestrator.run_subgame_via_mcp` via the module
-object (not a direct function import) so that tests which monkeypatch
+object (not a direct function import, and imported lazily inside the
+function rather than at module level — `orchestrator.py` re-exports
+*this* module's `run_series_via_mcp` at its own bottom, so a top-level
+`from src.agents import orchestrator` here would be a real circular
+import whenever something imports `orchestrator_series` directly, e.g.
+`src.agents.bonus_peer_half`) so that tests which monkeypatch
 `orchestrator.run_subgame_via_mcp` are honored here too.
 """
 
 import random
 
-from src.agents import orchestrator
 from src.strategy.heuristic import heuristic_candidate_actions
 
 
-def _score_subgame(winner: str, scoring: dict) -> tuple[int, int]:
+def score_subgame(winner: str, scoring: dict) -> tuple[int, int]:
     if winner == "cop":
         return scoring["cop_win"], scoring["thief_loss"]
     return scoring["cop_loss"], scoring["thief_win"]
@@ -33,6 +37,8 @@ async def _run_subgame_with_technical_loss_retry(
     times, so the series still ends with exactly `num_games` valid
     sub-games.
     """
+    from src.agents import orchestrator  # local import — see module docstring
+
     for attempt in range(1, max_retries + 2):
         try:
             return await orchestrator.run_subgame_via_mcp(
@@ -76,7 +82,7 @@ async def run_series_via_mcp(grid_size: tuple, max_moves: int, num_games: int, m
             visibility_radius, on_turn, max_technical_retries, technical_losses, index,
             cop_endpoint, thief_endpoint,
         )
-        cop_points, thief_points = _score_subgame(result["winner"], scoring)
+        cop_points, thief_points = score_subgame(result["winner"], scoring)
         result["cop_points"], result["thief_points"] = cop_points, thief_points
         cop_total += cop_points
         thief_total += thief_points

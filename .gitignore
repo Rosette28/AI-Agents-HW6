@@ -20,6 +20,8 @@ secrets/
 client_secret*.json
 token.json
 credentials.json
+# Phase 7 bonus coordination notes — partner tokens/URLs, never committed
+bonus_partner_notes*.md
 
 # Logs and run artifacts
 logs/

@@ -19,7 +19,7 @@ _SUB_GAME_SUMMARY_FIELDS = (
 )
 
 
-def _summarize_sub_game(sub_game: dict) -> dict:
+def summarize_sub_game(sub_game: dict) -> dict:
     return {field: sub_game[field] for field in _SUB_GAME_SUMMARY_FIELDS if field in sub_game}
 
 
@@ -45,6 +45,6 @@ def build_internal_game_json(series_result: dict, config: dict) -> dict:
         "cop_mcp_url": mcp.get("cop_mcp_url", ""),
         "thief_mcp_url": mcp.get("thief_mcp_url", ""),
         "timezone": config.get("timezone", "Asia/Jerusalem"),
-        "sub_games": [_summarize_sub_game(sg) for sg in series_result["sub_games"]],
+        "sub_games": [summarize_sub_game(sg) for sg in series_result["sub_games"]],
         "totals": series_result["totals"],
     }
