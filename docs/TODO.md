@@ -485,15 +485,14 @@ This is the heart of the assignment — treat it accordingly.
 
 ## Phase 5 — Cloud Deployment, Security & Automated Gmail Reporting
 
-- [ ] **Deploy both MCP servers to the cloud**
+- [x] **Deploy both MCP servers to the cloud**
   - Priority: High
-  - Status: not started — requires you to pick/sign up for a hosting
-    platform and run the deploy yourself; not something doable from this
-    session. `scripts/run_mcp_servers.py` already starts both servers as
-    independent asyncio tasks on configurable ports — point your chosen
-    host at that entrypoint.
-  - Definition of done: Cop and Thief servers each have a stable, public
-    HTTPS URL, reachable from outside your own network.
+  - Status: done — two independent Render web services,
+    `cop-mcp-server` and `thief-mcp-server-u04c`, each running
+    `scripts/run_mcp_servers.py` with `MCP_SERVER_ROLE=cop`/`thief`.
+  - Definition of done: confirmed — `https://cop-mcp-server.onrender.com/mcp`
+    and `https://thief-mcp-server-u04c.onrender.com/mcp` both stable,
+    public HTTPS URLs.
 
 - [x] **Implement token-based authentication with revocation support on
   each server**
@@ -507,13 +506,15 @@ This is the heart of the assignment — treat it accordingly.
     revokes a token mid-session (server stays running) and asserts the very
     next request with that token fails.
 
-- [ ] **Confirm public HTTPS reachability, not blocked by any firewall**
+- [x] **Confirm public HTTPS reachability, not blocked by any firewall**
   - Priority: High
-  - Status: not started — blocked on the deployment above; this is a
-    manual check against whatever URL that deployment produces.
-  - Definition of done: a request from outside your home/work network
-    succeeds; avoid testing from a restrictive organizational network,
-    since that can produce false negatives.
+  - Status: done — `scripts/check_cloud_reachability.py` confirmed both
+    URLs respond to a real `ping` tool call from outside the deployment
+    network; a full real 6-sub-game LLM-driven series was also played
+    against both servers end to end via `run_llm_demo.py`'s remote-endpoint
+    mode (totals: Cop 90, Thief 40), proving the reachability holds up
+    under sustained real traffic, not just a single ping.
+  - Definition of done: confirmed.
 
 - [ ] **Secure a local LLM via Ollama, if Approach 2 is used**
   - Priority: Low
@@ -524,22 +525,24 @@ This is the heart of the assignment — treat it accordingly.
   - Priority: Low
   - Status: not applicable — same reason as above.
 
-- [ ] **Record the final two URLs (Cop, Thief) in `docs/ARCHITECTURE.md`**
+- [x] **Record the final two URLs (Cop, Thief) in `docs/ARCHITECTURE.md`**
   - Priority: High
-  - Status: not started — blocked on the deployment above;
-    `docs/ARCHITECTURE.md` and `config.yaml: mcp.{cop,thief}_mcp_url` both
-    have the placeholder slots ready to fill in once URLs exist.
-  - Definition of done: both URLs present and current in that file, kept
-    in sync if either server is ever redeployed.
+  - Status: done — both URLs recorded in `docs/ARCHITECTURE.md`'s cloud
+    deployment table, also mirrored in `config.yaml: mcp.{cop,thief}_mcp_url`.
+  - Definition of done: confirmed.
 
-- [ ] **Set up a Google Cloud project + OAuth Client Secret + token**
+- [x] **Set up a Google Cloud project + OAuth Client Secret + token**
   - Priority: High
-  - Status: not started — interactive Google Console / consent-screen
-    steps only you can click through; `.env.example`'s
-    `GMAIL_CLIENT_SECRET_PATH`/`GMAIL_TOKEN_PATH` are the slots the
-    reporting code already reads from once you have them.
-  - Definition of done: credentials obtained per the recorded walkthrough;
-    paths stored in `.env`, the secret itself never committed to git.
+  - Status: done — Google Cloud project created, Gmail API enabled, OAuth
+    consent screen configured (External, `gmail.send` scope, test user
+    added), Desktop-app OAuth client created;
+    `secrets/client_secret.json` saved, `GMAIL_CLIENT_SECRET_PATH`/
+    `GMAIL_TOKEN_PATH` set in `.env`. `secrets/` added to `.gitignore` as
+    a blanket rule (confirmed via `git check-ignore -v`, neither file is
+    tracked).
+  - Definition of done: confirmed — first real send triggered the
+    interactive consent flow once; `secrets/token.json` now cached, every
+    later send is silent (confirmed by the redo below).
 
 - [x] **Implement the reporting module so the Cop agent automatically
   sends a single summary email after all 6 sub-games**
@@ -548,10 +551,14 @@ This is the heart of the assignment — treat it accordingly.
     `scripts/run_llm_demo.py` calls `build_internal_game_json` ->
     `validate_internal_game_json` -> `send_report` automatically right
     after `run_series_via_mcp` returns (no separate manual trigger script),
-    skipping with a clear message if Gmail OAuth env vars aren't set yet.
-  - Definition of done: confirmed in code — sending itself can't be
-    end-to-end verified without real OAuth credentials (the GCP setup
-    item above), which is the one piece left for you to do by hand.
+    skipping with a clear message if `config.yaml:
+    reporting.send_on_completion` is false or Gmail OAuth env vars aren't
+    set.
+  - Definition of done: confirmed end to end — a real 6-sub-game series
+    completed (totals Cop 90/Thief 40) and the Internal Game JSON was
+    emailed successfully (Gmail message id `19efdcd03b396e88`) to a test
+    recipient (`REPORT_RECIPIENT_OVERRIDE`), schema-verified against the
+    actual PDF spec (hw06 source PDF, S9.1) field-by-field.
 
 - [x] **Email body = the Internal Game JSON only — no free text**
   - Priority: High

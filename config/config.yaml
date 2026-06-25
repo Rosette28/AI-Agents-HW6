@@ -38,12 +38,12 @@ mcp:
   thief_mcp_url: "https://thief-mcp-server-u04c.onrender.com/mcp"
 
 group:
-  group_name: ""           # fill in before sending the Internal Game JSON report
-  students: []             # list of student names/IDs
-  github_repo: ""          # public repo URL for this submission
+  group_name: "rstabcde"
+  students: ["Rosette Khell", "Arthur Rennert"]
+  github_repo: "https://github.com/Rosette28/AI-Agents-HW6"
 
 reporting:
   recipient_email: "rmisegal+uoh26b@gmail.com"
-  send_on_completion: true   # safety gate — flip back to false after this test send
+  send_on_completion: false   # safety gate — flip to true only for the real final run
 
 timezone: "Asia/Jerusalem"
