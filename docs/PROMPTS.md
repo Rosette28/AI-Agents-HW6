@@ -117,7 +117,14 @@ The belief-update prompt (§2.3) is implemented in `src/agents/belief.py`
 as a JSON-only completion (`{"row", "col", "confidence", "note"}`); a
 direct observation from the new `observe_opponent` MCP tool (within
 `observation.visibility_radius`) always overrides the NL-derived estimate,
-matching the priority order in `docs/prd/nl-dialogue.md`.
+matching the priority order in `docs/prd/nl-dialogue.md`. Added
+2026-06-25: the NL-derived estimate is also checked against the agent's
+*previous* estimate for physical plausibility (more than 1 cell of
+implied movement in one turn caps confidence at "low" rather than
+trusting the LLM's own stated confidence) — catches an
+internally-inconsistent bluff without ever discarding or "correcting" the
+opponent's message. See `docs/prd/nl-dialogue.md`'s Algorithm/Edge-cases
+sections for detail.
 
 ### 2.5 Rules of engagement (apply to both prompts above)
 

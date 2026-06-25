@@ -70,12 +70,16 @@ logic — it only consumes a belief state and returns an action.
   `Board.place_barrier()` walls off the Cop's *current* cell, denying it as
   an escape route once the Cop steps off next turn — not a target cell, so
   it's only useful right at the moment of closing in.
-- **Tabular Q-Learning** — `src/strategy/q_learning.py` (`QLearningAgent`)
-  + `scripts/train_q_learning.py` (offline training loop against the local
-  engine directly, not through MCP — thousands of training episodes over
-  real tool calls would be far slower for no benefit, since training has
-  nothing to do with the inter-agent NL channel). State = `(own_pos,
-  opponent_pos)` string key, where `opponent_pos` collapses to one shared
+- **Tabular Q-Learning** — split across three modules to stay under the
+  project's 150-line file limit, all re-exported from
+  `src/strategy/q_learning.py` so external imports are unchanged:
+  `q_learning_state.py` (state/action/reward helpers), `q_learning_agent.py`
+  (`QLearningAgent` itself), `q_learning_training.py` (the offline training
+  loop, called from the thin CLI wrapper `scripts/train_q_learning.py`) —
+  against the local engine directly, not through MCP, since thousands of
+  training episodes over real tool calls would be far slower for no
+  benefit (training has nothing to do with the inter-agent NL channel).
+  State = `(own_pos, opponent_pos)` string key, where `opponent_pos` collapses to one shared
   `"?"` bucket whenever the opponent is out of `visibility_radius` —
   during training, checked against the true board (no NL channel
   simulated); at inference, against the `UNKNOWN_POSITION` sentinel

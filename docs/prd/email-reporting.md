@@ -15,7 +15,10 @@ it automatically.
   URLs, group metadata) plus `config.yaml: reporting.recipient_email`.
 - **Output:** one email sent to `rmisegal+uoh26b@gmail.com`, body = the
   Internal Game JSON (§11.1 of the requirements) serialized exactly, no
-  surrounding prose or markdown.
+  surrounding prose or markdown. Each `sub_games` entry is a **compact
+  summary** (`winner`, `moves_taken`, `final_cop_pos`, `final_thief_pos`,
+  `barriers_placed`, `cop_points`, `thief_points`) — see the decision note
+  below; this is not the full per-turn NL transcript.
 - **Auth input:** OAuth client secret + token paths from `.env`
   (`GMAIL_CLIENT_SECRET_PATH`, `GMAIL_TOKEN_PATH`), obtained via a Google
   Cloud project per the course's recorded walkthrough.
@@ -23,13 +26,32 @@ it automatically.
 ## Algorithm
 
 1. After sub-game 6 completes (and is valid — see Technical Loss below),
-   assemble the Internal Game JSON from the engine's accumulated results.
+   assemble the Internal Game JSON from the engine's accumulated results,
+   trimming each `sub_games` entry to summary fields only
+   (`src.reporting.game_report._summarize_sub_game`).
 2. Validate the JSON against the schema in `hw06_requirements.md` §11.1
    before sending (a test enforces this).
 3. Authenticate to Gmail API using the stored OAuth token (refresh if
    expired).
 4. Send the email with the JSON as the entire body; log the send
    confirmation to `results/`.
+
+## Decision: why `sub_games` doesn't include the full transcript
+
+The first implementation included the full per-turn transcript (every
+move/message/belief) in each `sub_games` entry — on a real run this
+produced an email body tens of thousands of characters long. Checked
+against the actual spec PDF (§9.1's example): it shows `"sub_games": []`
+with no field-by-field schema for a non-empty entry, and the only stated
+content rule is "JSON only, no free text." §9's own stated purpose for
+this report — automatic intake/processing by the grading system — argues
+for the compact form: a grading script needs the scoring fields, not
+free-text NL transcripts. Those transcripts remain required evidence,
+just live elsewhere (`results/transcripts/*.txt`, linked from the README
+per §11), not embedded in the auto-graded email. This is a judgment call,
+not a literal requirement quote — see `docs/PLAN.md` ADR-7 for the full
+reasoning and the one place to revert it if grading feedback says
+otherwise.
 
 ## Constraints and limitations, alternatives considered
 

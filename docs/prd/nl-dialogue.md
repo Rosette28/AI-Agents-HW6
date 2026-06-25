@@ -34,7 +34,19 @@ messages into an updated belief, despite genuine linguistic ambiguity.
    `visibility_radius`, the direct observation overrides/corrects whatever
    the NL message implied (this is also where bluffing becomes detectable
    over time).
-4. Feed the merged belief into the strategy module for action selection.
+4. Check physical plausibility: with no direct observation, the
+   NL-derived estimate is compared against the *previous* estimate — if
+   the implied move is farther than physically possible (more than 1 cell
+   per turn, 8-directional movement), confidence is capped at "low"
+   rather than trusted at the LLM's own stated confidence. Added in the
+   2026-06-25 strategy-hardening pass (`docs/TODO.md`), once it became
+   clear an internally-inconsistent bluff could otherwise make the
+   believer falsely "confident."
+5. Feed the merged belief into the strategy module for action selection —
+   with no estimate at all, the opponent's position is set to a reserved
+   off-board sentinel (`UNKNOWN_POSITION`, `src/engine/board.py`) rather
+   than a real coordinate or a fixed default, so the strategy module can
+   tell "I don't know" apart from "I know and it's here."
 
 ## Constraints and limitations, alternatives considered
 
@@ -53,6 +65,12 @@ messages into an updated belief, despite genuine linguistic ambiguity.
 - Self-contradictory message across turns (intentional bluffing or model
   inconsistency) — log it; do not attempt to silently "correct" the
   opponent's message.
+- NL-parsed position claim implies a physically impossible jump since the
+  last estimate — downgrade confidence to "low" (step 4 above), don't
+  discard the claim outright; a wrong direction is still weaker signal
+  than none, and outright discarding it would mean the believer's
+  confidence is dictated entirely by whatever the opponent claims, with no
+  internal consistency check at all.
 
 ## Success criteria / test scenarios
 

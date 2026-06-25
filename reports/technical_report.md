@@ -242,6 +242,44 @@ This closes out the two items §6/§7 of the previous draft of this report
 left open pending Phase 5: real cloud reachability logs now exist, and the
 4th required question below no longer has to hedge on missing evidence.
 
+## 7b. Post-strategy-hardening cloud run (2026-06-25)
+
+After the strategy-hardening pass (Thief belief-fallback fix, Cop
+plausibility check — §3 and `docs/PLAN.md` ADR-6) and the Q-learning
+partial-observability retrain (§5), a fourth real cloud run was played
+against the same two deployed Render servers, real Anthropic API calls,
+the (still-default) heuristic strategy:
+
+> **Cloud-run totals: Cop 105, Thief 35** (5 Cop captures — in 5, 8, 1, 3,
+> and 3 moves — plus 1 Thief survival at the 25-move cap). No technical
+> losses; all 6 sub-games completed on the first attempt.
+
+This is real, transcript-backed confirmation that the Thief fallback fix
+works in production, not just under test: in `subgame_5x5_06_thief.txt`
+(the survival sub-game, 50 logged turns, the Thief at "no reliable
+information" confidence for nearly the entire game), the Thief's actual
+moves cover N, S, E, W, NE, NW, SE, and SW — not locked onto the
+predictable one-or-two-cell oscillation the old grid-center-default
+fallback would have produced. The Cop plausibility check (§3) was present
+but never triggered in this run (no "implausible" flag in any of the 6
+transcripts) — expected, since it's a safety net for a failure mode
+(an internally-inconsistent NL claim) that this particular run's model
+output didn't happen to produce, not evidence the check doesn't work.
+
+**This run also caught a real schema/length problem, now fixed**: the
+first email sent from this run had every `sub_games` entry carrying the
+full per-turn transcript, producing a body tens of thousands of
+characters long. Checked against the actual spec PDF directly (§9.1's
+example shows `"sub_games": []`, no per-entry schema, and the only stated
+rule is "JSON only, no free text") — `build_internal_game_json` now trims
+each entry to summary fields only (`winner`, `moves_taken`, final
+positions, `barriers_placed`, points). A second email from the same
+already-completed run confirmed the fix: body length dropped from tens of
+thousands of characters to 1,880. Full reasoning in `docs/PLAN.md` ADR-7
+and `docs/prd/email-reporting.md`'s decision note. The full transcripts
+are unaffected and still saved to `results/transcripts/*.txt` — they were
+never the thing that needed shrinking, the *emailed copy* of them was.
+
 ## 8. The four required questions
 
 **How does free-language orchestration differ from a rigid protocol?**
@@ -311,9 +349,10 @@ design-only answer.
 
 ## 9. Status note
 
-Sections 1–5 and 7–8 are complete, based on real, already-recorded runs
-(both the local run and the now-confirmed cloud run) — not projected or
-assumed. The one remaining open item in this report is the GUI screenshot
-in §6, which needs a live run captured with an actual display; nothing
-else in Phase 6 depends on further Phase 5 work, since Phase 5 itself is
-now fully closed out per `docs/TODO.md`.
+Sections 1–5, 6, and 7–8 are complete, based on real, already-recorded
+runs (the local run, the first cloud run, and the post-strategy-hardening
+cloud run in §7b) — not projected or assumed. §7b's email-format fix is
+itself confirmed by a second real send from the same run (1,880-character
+body vs. the original tens of thousands). 111 tests passing project-wide,
+91% coverage. Nothing in this report is still pending Phase 5 work, since
+Phase 5 itself is fully closed out per `docs/TODO.md`.

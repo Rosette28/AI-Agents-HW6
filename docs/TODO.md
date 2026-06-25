@@ -1153,3 +1153,71 @@ here in case that changes.
      mid-sequence to use the sentinel instead of a random coordinate, once
      this generalization problem surfaced — documented in commit history,
      not hidden.
+- 2026-06-25: §20.9-checklist file-size compliance pass, requested
+  explicitly before the next real run. Two files were over the 150-line
+  limit: `src/strategy/q_learning.py` (175 lines) and
+  `scripts/train_q_learning.py` (155 lines). Split rather than trimmed:
+  `q_learning.py` → `q_learning_state.py` (state/action/reward helpers) +
+  `q_learning_agent.py` (`QLearningAgent`) + `q_learning_training.py` (the
+  training loop, now a `src/strategy/` library module instead of living
+  directly in the script), all re-exported from the original
+  `q_learning.py` path so no other file's imports needed to change.
+  `scripts/train_q_learning.py` is now a thin CLI wrapper around
+  `q_learning_training.train`. Added `tests/strategy/
+  test_q_learning_training.py` (4 new tests) since the training loop
+  moving into `src/` made it count toward coverage for the first time
+  (previously invisible to `--cov=src` as a script). Max file length
+  after the split: 136 lines (`src/agents/belief.py`). 111 tests
+  project-wide, 91% coverage.
+- 2026-06-25: First real cloud run with the strategy-hardening fixes
+  active, against the same deployed Render servers, real Anthropic API
+  calls (`run_llm_demo.py`, `algorithm: heuristic`). **Totals: Cop 105,
+  Thief 35** (5 Cop captures, 1 Thief survival), no technical losses. The
+  Thief fallback fix confirmed working on real output, not just under
+  test: `results/transcripts/subgame_5x5_06_thief.txt` (the 50-turn
+  survival sub-game) shows the Thief moving in 8 different directions
+  while at "no reliable information" confidence almost the whole game —
+  not the old fixed one-or-two-cell oscillation. The Cop plausibility
+  check was present but never triggered (no "implausible" flag in any of
+  the 6 transcripts) — a safety net for a failure mode that didn't happen
+  to occur this run, not evidence it's inert.
+  **Found and fixed a real problem from this run:** the email sent had
+  every `sub_games` entry carrying the full per-turn transcript, several
+  tens of thousands of characters total. Read the actual spec PDF
+  directly (`ex06-Dual AI agent race via MCP servers.pdf`, §9.1) at the
+  user's pointer — confirmed the official example shows `"sub_games": []`
+  with no per-entry field schema, and the only stated content rule is
+  "JSON body only, no free text"; §9's own stated purpose (automatic
+  grading-system intake) argues for compact summary fields, not full NL
+  transcripts, which remain required evidence elsewhere (§11,
+  `results/transcripts/*.txt`, linked from the README) rather than
+  embedded in the auto-graded email. `build_internal_game_json` now trims
+  each `sub_games` entry via `_summarize_sub_game` (winner, moves_taken,
+  final positions, barriers_placed, points only). Verified by rebuilding
+  the report from this run's already-saved `results/*.json` files (no
+  need to re-run the expensive cloud series) and sending a second real
+  email: body length dropped from tens of thousands of characters to
+  1,880. `docs/PLAN.md` ADR-7 and `docs/prd/email-reporting.md` record the
+  decision and its honest caveat (the spec doesn't explicitly forbid a
+  fuller entry either — this is the project's best read, not a literal
+  quote, and `_SUB_GAME_SUMMARY_FIELDS` is the one place to revert if
+  grading feedback says otherwise).
+- 2026-06-25: **README.md spec-compliance correction.** Re-read
+  `ex06-Dual AI agent race via MCP servers.pdf` §11 directly: it requires
+  the scientific writeup — Dec-POMDP formal model, orchestration-challenge
+  analysis, and visualization/evidence (learning curves, GUI screenshots,
+  CLI logs proving cloud MCP communication) — to live *in README.md
+  itself*, not in a separately-linked report file. The previous README
+  only linked to `reports/technical_report.md` for all of that, which
+  doesn't satisfy §11 literally. Rewrote `README.md` to embed all three
+  required sections directly (Dec-POMDP tuple mapped to this project's
+  code, the three orchestration-challenge findings with transcript
+  evidence, and a new "Visualizations and evidence" section with both
+  figures embedded inline plus a real CLI log excerpt from the
+  2026-06-25 cloud run proving live communication against the deployed
+  Render servers) while keeping the practical install/usage/config
+  sections that were already there. `reports/technical_report.md` is kept
+  as the *extended* writeup (full grid-size progression, all four
+  required questions, qualitative transcript review) and is now described
+  as supplementary in the README, not as the only place this content
+  exists. All 111 tests still passing (docs-only change).

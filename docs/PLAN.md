@@ -144,6 +144,41 @@ Note over T,C: repeat until capture or max_moves reached — E (the ground-truth
   list — both within the assignment's explicit allowance for custom
   tools/rules that don't contradict the core instructions.
 
+### ADR-6: Shared "unknown opponent position" sentinel, defined in the engine
+
+- **Decision:** when an agent's belief about the opponent has no estimate
+  (`Belief.estimate is None`), the belief-aware proxy board
+  (`src.agents.belief.make_belief_board`) sets the opponent's position to
+  `UNKNOWN_POSITION = (-1, -1)` — a reserved off-board sentinel defined in
+  `src/engine/board.py`, not in `src/agents`.
+- **History:** the first fix for the Thief's "oscillates between two fixed
+  corner cells whenever belief is unknown" bug (a real exploitable
+  pattern — see `docs/TODO.md`'s 2026-06-25 strategy-hardening notes) used
+  a freshly-randomized in-bounds coordinate instead. That fixed the
+  heuristic's oscillation, but turned out to be the wrong shape for
+  retraining Q-learning under partial observability: a tabular Q-table
+  can't generalize across a different random coordinate every turn, so it
+  would just see an unseen state and return nothing useful. The sentinel
+  redesign fixes both at once.
+- **Rationale:** `src/strategy` is only allowed to depend on `src/config`
+  and the engine's public interface, never on `src/agents` (the
+  module-dependency rule in `docs/PROMPTS.md`) — so the sentinel had to
+  live in the engine, the one module both `src.agents.belief` (which
+  produces it) and `src.strategy.{heuristic,q_learning_agent}` (which
+  consume it) already depend on. Both strategies now collapse "unknown"
+  to the exact same representation: the heuristic picks a random legal
+  direction instead of ranking by distance to a fake point; Q-learning
+  collapses it to one shared state-table bucket, the same one used during
+  training (`QLearningAgent.state_for`, `scripts/train_q_learning.py`).
+- **Trade-off:** the retrained Q-learning table's Cop win-rate no longer
+  converges cleanly under partial observability (oscillates ~0.23-0.69
+  instead of settling at 1.0) — a real, documented finding
+  (`docs/prd/strategy.md`'s calibration record), not a regression to
+  paper over. A single shared bucket can't represent a turn-varying
+  correct answer; a proper fix would need a real belief-state
+  representation (e.g. a probability distribution over candidate cells),
+  out of scope for tabular Q-learning.
+
 ## Data flow
 
 ```
@@ -161,6 +196,32 @@ Full MCP tool contracts live in `docs/API.md` (filled in during Phase 2).
 JSON report schemas (Internal Game JSON, Inter-Group Bonus Game JSON) are
 specified verbatim in `hw06_requirements.md` §11 and re-validated by a test
 in `tests/` before the reporting module ships.
+
+### ADR-7: Emailed `sub_games` entries are a compact summary, not the full transcript
+
+- **Decision:** `src.reporting.game_report.build_internal_game_json` trims
+  each `sub_games` entry to `winner`, `moves_taken`, `final_cop_pos`,
+  `final_thief_pos`, `barriers_placed`, `cop_points`, `thief_points` —
+  dropping the full per-turn transcript (`action`/`message`/`belief` for
+  every move) before the payload is emailed.
+- **History:** the first implementation included the full transcript in
+  every `sub_games` entry. On a real run this produced an email body tens
+  of thousands of characters long. Checked against the actual spec
+  (`hw06_requirements.md` §9.1's example, read directly from the source
+  PDF): it shows `"sub_games": []` with no field-by-field schema for a
+  non-empty entry, and the only stated content rule is that the email
+  body is the JSON report *only*, no free text — nothing requires the NL
+  transcript to be inside the email.
+- **Rationale:** §9's own stated purpose for this report is "automatic
+  intake/processing by the grading system" — a grading script needs the
+  scoring fields, not free-text NL transcripts. The transcripts themselves
+  remain required evidence, just documented elsewhere per §11's README/
+  repo requirements: they're saved to `results/transcripts/*.txt` and
+  linked from the README, not embedded in the auto-graded email.
+- **Trade-off:** this is a judgment call, not a literal requirement quote
+  — the spec doesn't explicitly forbid a fuller `sub_games` entry either.
+  If grading feedback ever says otherwise, this is the one place to
+  revert (`_SUB_GAME_SUMMARY_FIELDS` in `game_report.py`).
 
 ## Bonus partnership (if pursued)
 

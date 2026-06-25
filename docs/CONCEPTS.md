@@ -52,6 +52,23 @@ about the opponent's position is inferred from (a) the visibility radius
 when in range, and (b) natural-language hints/claims from the opponent,
 which may be truthful, vague, or deliberately misleading (bluffing).
 
+Two concrete mechanisms instantiate this, both in `src/agents/belief.py`:
+
+- **No-information sentinel.** When there's genuinely no estimate (neither
+  in-radius nor a usable NL hint), the opponent's position is set to
+  `UNKNOWN_POSITION` — a reserved off-board cell defined in
+  `src/engine/board.py` (not a fake real coordinate) — so the strategy
+  modules can explicitly detect "I don't know" rather than silently
+  treating a guess as real information.
+- **Physical-plausibility check.** A direct observation always overrides
+  the NL-derived estimate (bluffing is only detectable because of this
+  priority order); but even the NL-derived estimate itself is checked
+  against the *previous* estimate — if the new claim implies the opponent
+  moved farther than physically possible (more than 1 cell per turn,
+  8-directional movement), confidence is downgraded to "low" rather than
+  trusted at face value. This catches an internally-inconsistent bluff
+  without ever "correcting" or discarding the opponent's message.
+
 ## Multi-agent orchestration without a rigid protocol
 
 No fixed message schema or coordinate encoding is allowed between agents.
@@ -62,8 +79,13 @@ and the README's orchestration-analysis section.
 
 ## Q-Learning (optional strategy)
 
-- **State (s):** agent's own position (and optionally belief about the
-  opponent's position / barrier layout).
+- **State (s):** agent's own position + believed opponent position, where
+  the opponent collapses to one shared "unknown" bucket whenever out of
+  `visibility_radius` (training) or genuinely unestimated (real play,
+  via the `UNKNOWN_POSITION` sentinel above) — see `docs/prd/strategy.md`
+  for what happens when a tabular table is asked to learn a single value
+  for a bucket whose correct action legitimately varies turn to turn (it
+  doesn't converge cleanly, which is itself a documented finding).
 - **Action (a):** one of the 8 movement directions, or barrier placement
   (Cop only).
 - **Reward (r):** intermediate shaping reward (e.g., distance closed) plus
