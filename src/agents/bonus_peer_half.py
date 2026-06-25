@@ -7,8 +7,10 @@ change at all when this peer-based half-runner replaced the old (flawed)
 single-orchestrator one. See `src.agents.bonus_peer`'s module docstring.
 """
 
+import asyncio
 import random
 
+from src.agents.bonus_peer import barrier_sync
 from src.agents.bonus_peer_subgame import run_subgame_as_peer
 from src.agents.orchestrator_series import score_subgame
 from src.engine.start_positions import random_start_positions
@@ -37,6 +39,8 @@ async def run_bonus_half_as_peer(
         print(f"  Sub-game {sub_game_index}/{num_sub_games} | my start: {my_start_pos} | "
               f"cop start: {cop_pos} | thief start: {thief_pos}")
 
+        if sub_game_index > 1:
+            await barrier_sync(my_role, my_endpoint, partner_endpoint, half_index, sub_game_index)
         result = await run_subgame_as_peer(
             my_role, my_endpoint, partner_endpoint, llm_client, grid_size, max_moves,
             max_barriers, visibility_radius, my_start_pos, random.Random(seed),

@@ -50,7 +50,12 @@ async def wait_for_opponent_move(mcp_client: Client, last_seen: dict | None) -> 
     """
     waited = 0.0
     while waited < MAX_WAIT_SECONDS:
-        message = (await mcp_client.call_tool("read_message")).data
+        try:
+            message = (await asyncio.wait_for(
+                mcp_client.call_tool("read_message"), timeout=POLL_INTERVAL_SECONDS * 5
+            )).data
+        except asyncio.TimeoutError:
+            message = None
         if message and message != last_seen:
             return message
         print(f"    Waiting for opponent... {int(waited)}s elapsed", end="\r", flush=True)
@@ -58,6 +63,35 @@ async def wait_for_opponent_move(mcp_client: Client, last_seen: dict | None) -> 
         waited += POLL_INTERVAL_SECONDS
     raise RuntimeError("Timed out waiting for the opponent's move (Phase 7 bonus peer protocol) "
                         "— check the partner's server is reachable and running its own side of this.")
+
+
+async def barrier_sync(
+    my_role: str, my_endpoint: dict, partner_endpoint: dict,
+    half_index: int, sub_game_index: int,
+) -> None:
+    """Before sub-game N (N > 1), both sides exchange a fixed 'ready' signal
+    and wait for the other's before proceeding. This guarantees both sides
+    enter the sub-game loop at the same time. Must be called BEFORE
+    start_subgame so the inbox reset in start_subgame clears the barrier
+    messages automatically.
+    """
+    ready_text = f"READY:half:{half_index}:subgame:{sub_game_index}"
+    async with client(my_endpoint) as my_c, client(partner_endpoint) as partner_c:
+        await partner_c.call_tool("receive_message", {"from_agent": my_role, "text": ready_text})
+        waited = 0.0
+        while waited < 60.0:
+            try:
+                msg = (await asyncio.wait_for(
+                    my_c.call_tool("read_message"), timeout=10.0
+                )).data
+            except asyncio.TimeoutError:
+                msg = None
+            if msg and msg.get("text") == ready_text:
+                return
+            print(f"  Barrier: waiting for partner ready signal... {int(waited)}s", end="\r", flush=True)
+            await asyncio.sleep(2.0)
+            waited += 2.0
+        raise RuntimeError(f"Barrier timeout: partner did not signal ready for sub-game {sub_game_index}")
 
 
 async def positions(my_client: Client, partner_client: Client) -> tuple[tuple, tuple]:
