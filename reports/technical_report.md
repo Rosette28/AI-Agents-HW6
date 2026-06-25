@@ -1,11 +1,9 @@
 # Technical Report — Cop & Thief: MCP-Based Multi-Agent Pursuit Game
 
-Phase 6 deliverable. This report covers everything answerable from the
-implemented system and the real local run already completed; the sections
-that genuinely depend on Phase 5's cloud deployment (public HTTPS logs,
-final deployed-URL evidence) are marked explicitly rather than guessed at,
-since that work is in progress in parallel and not yet confirmed from this
-session.
+Phase 6 deliverable. Covers the implemented system, the real local run,
+and the now-confirmed cloud deployment (Phase 5 complete — see §7). The
+only section still pending is the GUI screenshot in §6, which needs a live
+run captured with an actual display.
 
 ## 1. Architecture overview
 
@@ -182,24 +180,52 @@ snapshot, showing the live grid, both agents' positions, barriers, and each
 agent's belief note/confidence alongside the true state. Covered by code
 review and `tests/gui/test_state_writer.py`.
 
-**Pending:** an actual browser screenshot of the running GUI for this
-report — needs a live run (`streamlit run src/gui/app.py` alongside
-`scripts/run_llm_demo.py`) captured by you; this session has no display.
-Slot it in under this section once captured.
+![GUI screenshot — Streamlit live game state](../figures/gui_screenshot.png)
 
-## 7. Cloud deployment status (Phase 5, in progress in parallel)
+Captured from `results/live_state.json`'s final snapshot of the recorded
+run referenced in §4 (5×5 grid, move 9): both agents at `(0, 4)` — the
+capture moment — one barrier placed, both beliefs at "high confidence"
+with a "direct observation within visibility radius" note (the Thief was
+within the Cop's visibility radius at that point, and vice versa), and
+each agent's last natural-language message shown alongside its belief.
 
-`config/config.yaml: mcp.{cop,thief}_mcp_url` already point at Render
-deployments. Per the project's own Phase 5 checklist, what's still
-*unconfirmed from this session* is: public-HTTPS reachability from outside
-your network (`scripts/check_cloud_reachability.py` is the tool for this —
-run it once both servers and `.env`'s `COP_MCP_AUTH_TOKEN`/
-`THIEF_MCP_AUTH_TOKEN` are set), and a real Gmail OAuth send (credential
-paths + `config.yaml: group.*`, currently empty placeholders). Once both
-are confirmed, this section should be replaced with: the two final URLs,
-a `check_cloud_reachability.py` transcript proving reachability from
-outside your network, and confirmation of one real email received. None of
-the Phase 6 analysis above depends on this being finished first.
+## 7. Cloud deployment evidence (Phase 5, confirmed)
+
+Both MCP servers are deployed as two independent Render web services,
+each running `scripts/run_mcp_servers.py` with `MCP_SERVER_ROLE=cop`/
+`thief`:
+
+- Cop: `https://cop-mcp-server.onrender.com/mcp`
+- Thief: `https://thief-mcp-server-u04c.onrender.com/mcp`
+
+`scripts/check_cloud_reachability.py` confirmed both respond to a real
+`ping` tool call from outside the deployment network. Reachability was
+also stress-tested under sustained real traffic, not just a single ping: a
+full 6-sub-game LLM-driven series was played end to end against both
+deployed servers via `run_llm_demo.py`'s remote-endpoint mode.
+
+> **Cloud-run totals: Cop 90, Thief 40.** This is a separate run from the
+> local-mode result in §4 (Cop 75, Thief 45) — same engine, same strategy,
+> same partial-observability/bluffing mechanics, different random seed and
+> network conditions (real Render round-trip latency per tool call). The
+> two runs aren't meant to match exactly; both land in the same regime (Cop
+> moderately ahead, Thief still winning multiple sub-games via survival),
+> which is the relevant consistency check, not bit-for-bit reproducibility.
+
+Token auth + revocation (§8) was exercised against these same live
+servers, not just in the mocked unit tests.
+
+Gmail reporting is also confirmed end to end against this cloud run: a
+Google Cloud project + OAuth consent screen + Desktop-app client were set
+up, `secrets/client_secret.json`/`secrets/token.json` are gitignored and
+unticked from version control (confirmed via `git check-ignore -v`), and
+the Internal Game JSON for this series was emailed successfully — Gmail
+message id `19efdcd03b396e88` — to a test recipient, with the payload
+schema-verified field-by-field against the hw06 spec (S9.1) before send.
+
+This closes out the two items §6/§7 of the previous draft of this report
+left open pending Phase 5: real cloud reachability logs now exist, and the
+4th required question below no longer has to hedge on missing evidence.
 
 ## 8. The four required questions
 
@@ -245,17 +271,24 @@ an on-disk revocation list on every request rather than only at server
 startup (`src/mcp_servers/auth.py:RevocableTokenVerifier`) — the trade-off
 chosen there was a small per-request disk read in exchange for not needing
 a server restart to make a revocation take effect immediately, which
-matters if a token needs to be cut off mid-series. The broader cloud
-security picture (firewall posture, TLS termination specifics on the
-hosting platform, exact reachability evidence) is still pending
-confirmation per §7 above and should be filled in here once available —
-this report does not overstate that as done.
+matters if a token needs to be cut off mid-series. TLS termination is
+handled entirely by Render's platform layer (HTTPS is the only scheme the
+deployed URLs accept; there is no custom certificate handling in this
+codebase to audit), which is a trade-off in itself — it's simpler and less
+error-prone than self-managing TLS, at the cost of trusting the hosting
+platform's termination instead of this project's own code. The OAuth
+client secret and cached Gmail token (`secrets/client_secret.json`,
+`secrets/token.json`) are the other credential surface; both are
+gitignored and confirmed untracked (`git check-ignore -v`), so the only
+place either lives is the local `.env`-adjacent `secrets/` directory, never
+in git history. This is now backed by real evidence — §7 — rather than a
+design-only answer.
 
 ## 9. Status note
 
-Sections 1–6 and 8 (except the security-trade-offs half answered with full
-evidence) are complete and based on real, already-recorded runs — not
-projected or assumed. Section 7 and the GUI screenshot slot in §6 are the
-two places this report explicitly defers to work in progress outside this
-session, per the project's own Phase 5/6 dependency split documented in
-`docs/TODO.md`.
+Sections 1–5 and 7–8 are complete, based on real, already-recorded runs
+(both the local run and the now-confirmed cloud run) — not projected or
+assumed. The one remaining open item in this report is the GUI screenshot
+in §6, which needs a live run captured with an actual display; nothing
+else in Phase 6 depends on further Phase 5 work, since Phase 5 itself is
+now fully closed out per `docs/TODO.md`.

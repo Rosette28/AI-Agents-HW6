@@ -629,17 +629,17 @@ This is the heart of the assignment — treat it accordingly.
 
 - [x] **Write the deep-dive technical report under `reports/`**
   - Priority: High
-  - Status: mostly done — `reports/technical_report.md` covers
-    architecture, the Dec-POMDP model, results across the full sanity-check
-    progression (random policy → heuristic/Q-learning → real LLM run), and
-    the learning curve. Two pieces explicitly deferred and flagged in the
-    report itself (§6, §7), not silently skipped: a real GUI screenshot
-    (needs a live run with a display, which this session doesn't have) and
-    cloud logs proving public-HTTPS reachability (blocked on the Phase 5
-    cloud-deployment items below, currently in progress in parallel).
-  - Definition of done: confirmed for everything not dependent on Phase 5;
-    revisit §6/§7 once the GUI screenshot and cloud reachability evidence
-    exist.
+  - Status: done — `reports/technical_report.md` covers architecture, the
+    Dec-POMDP model, results across the full sanity-check progression
+    (random policy → heuristic/Q-learning → real local LLM run → real
+    cloud LLM run), the learning curve, and cloud deployment evidence
+    (§7: both Render URLs, `check_cloud_reachability.py` confirmation,
+    a full cloud-driven 6-sub-game series — Cop 90/Thief 40 — and a real
+    Gmail send, message id `19efdcd03b396e88`). GUI screenshot now embedded
+    in §6 (`figures/gui_screenshot.png`, captured by the user from the
+    leftover `results/live_state.json` snapshot — no need to re-run the
+    series, the GUI just polls whatever's on disk).
+  - Definition of done: confirmed, fully done.
 
 - [x] **Finalize `README.md` for an external reader**
   - Priority: High
@@ -652,21 +652,17 @@ This is the heart of the assignment — treat it accordingly.
   - Definition of done: confirmed, modulo embedding the still-pending GUI
     screenshot once captured.
 
-- [ ] **Explicitly answer the four required questions somewhere in the
+- [x] **Explicitly answer the four required questions somewhere in the
   report**
   - Priority: High
-  - Status: in progress — three of four fully answered, one partially — all in
-    `reports/technical_report.md` §8. The free-NL-vs-rigid-protocol,
-    partial-observability, and skill-ceiling questions are answered with
-    concrete evidence from the real run. The cloud-security-trade-offs
-    question is answered for what's implemented (token auth + no-restart
-    revocation design) but explicitly notes that the broader cloud
-    security picture (firewall posture, TLS specifics, reachability
-    evidence) is still pending Phase 5 confirmation — not overstated as
-    done.
-  - Definition of done: revisit the fourth question once Phase 5's cloud
-    deployment is confirmed reachable; the other three need no further
-    work.
+  - Status: done — all four fully answered in `reports/technical_report.md`
+    §8, each with concrete evidence from real runs: free-NL-vs-rigid-
+    protocol and partial-observability (local transcript evidence, §3);
+    skill-ceiling (the Q-learning-vs-heuristic distinction, §5); cloud
+    security trade-offs (token revocation design + Render's TLS
+    termination + confirmed-gitignored OAuth secrets, now backed by the
+    real cloud deployment evidence in §7 rather than a design-only answer).
+  - Definition of done: confirmed.
 
 ---
 
@@ -1100,3 +1096,21 @@ here in case that changes.
   or fill in `config.yaml: group.*` — those are Phase 5 tasks the user is
   already handling, and doing them here risked stepping on work in
   progress elsewhere.
+- 2026-06-25: Phase 6 finished, now that Phase 5 closed out in parallel
+  (both MCP servers confirmed reachable on Render, Gmail OAuth send
+  confirmed — see Phase 5 above). Updated `reports/technical_report.md`
+  §7 from a "pending" placeholder to real cloud-deployment evidence: both
+  Render URLs, the `check_cloud_reachability.py` confirmation, and a full
+  cloud-driven 6-sub-game series (Cop 90/Thief 40 — a different run from
+  the local-mode 75/45 in §4, same regime, not expected to match exactly).
+  §8's fourth required question (cloud security trade-offs) rewritten to
+  cite that real evidence instead of hedging on missing confirmation —
+  added the TLS-termination trade-off (Render handles it, not custom code
+  in this project) and confirmed the OAuth secret/token files are
+  gitignored and untracked. GUI screenshot (§6) now embedded too —
+  `figures/gui_screenshot.png`, captured by the user from the leftover
+  `results/live_state.json` final snapshot (move 9, 5×5 grid, capture
+  moment at `(0,4)`, one barrier placed, both beliefs "high confidence")
+  rather than re-running the whole series, since the GUI just polls
+  whatever's already on disk. All four Phase 6 checklist items above are
+  now `[x]` — Phase 6 is fully done.
